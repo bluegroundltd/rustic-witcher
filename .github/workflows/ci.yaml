@@ -1,0 +1,65 @@
+name: Build Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+env:
+  CI: true
+  APP_NAME: "rustic-witcher"
+  ECR_REPO_NAME: "bluegroundltd/rustic-witcher"
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests-workflow.yaml
+    secrets: inherit
+  format-and-clippy:
+    uses: ./.github/workflows/format-workflow.yaml
+    secrets: inherit
+  build-and-push-docker-image:
+    runs-on: arc-runner-set
+    needs: [tests, format-and-clippy]
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.CI_AWS_ROLE }}
+          aws-region: eu-west-1
+      - name: Load CI_TOKEN
+        uses: bluegroundltd/gha-tooling/get-ssm-parameter@main
+        with:
+          ssm-parameter-path: ${{ secrets.CI_TOKEN_PATH }}
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ env.JENKINS_GITHUB_TOKEN }}
+      - uses: bluegroundltd/gha-tooling/short-sha@main
+        id: short-sha
+      - name: Determine Docker image tag
+        uses: bluegroundltd/gha-tooling/define-docker-image-tag@main
+        id: docker-image-tag
+        with:
+          main-branch-name: main
+          sha: ${{ steps.short-sha.outputs.short-sha }}
+      - uses: bluegroundltd/gha-tooling/build-and-push-docker-image@main
+        with:
+          ecr-repo-name: ${{ env.ECR_REPO_NAME }}
+          image-tag: ${{ steps.docker-image-tag.outputs.docker-image-tag }}
+          cache-enabled: "true"

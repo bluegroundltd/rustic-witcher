@@ -1,0 +1,14 @@
+[package]
+name = "rustic-faker-transformations"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+polars.workspace = true
+rand.workspace = true
+fake.workspace = true
+rustic-transformator.workspace = true
+rustic-faker-types.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true

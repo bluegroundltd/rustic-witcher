@@ -1,0 +1,16 @@
+[package]
+name = "rustic-cdc-operator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing.workspace = true
+aws-sdk-s3.workspace = true
+dms-cdc-operator.workspace = true
+colored.workspace = true
+deadpool-postgres.workspace = true
+indexmap.workspace = true
+futures.workspace = true
+rustic-duration.workspace = true
+rustic-anonymization-operator.workspace = true
+rustic-target-db.workspace = true

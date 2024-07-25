@@ -1,0 +1,14 @@
+[package]
+name = "rustic-anonymization-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing.workspace = true
+serde.workspace = true
+toml.workspace = true
+rustic-transformator.workspace = true
+rustic-base-transformations.workspace = true
+rustic-faker-transformations.workspace = true
+rustic-whole-table-transformator.workspace = true
+rustic-bg-whole-table-transformator.workspace = true

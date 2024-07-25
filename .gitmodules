@@ -1,0 +1,12 @@
+[submodule "rustic-bg-whole-table-transformator"]
+	path = rustic-bg-whole-table-transformator
+	url = https://github.com/bluegroundltd/rustic-witcher-transformations
+	branch = main
+[submodule "rustic-local-data-importer-cli"]
+	path = rustic-local-data-importer-cli
+	url = https://github.com/bluegroundltd/rustic-local-data-importer-cli
+	branch = main
+[submodule "configuration_data"]
+	path = configuration_data
+	url = https://github.com/bluegroundltd/rustic-witcher-configuration-data
+	branch = main

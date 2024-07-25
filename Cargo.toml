@@ -1,0 +1,126 @@
+[package]
+name = "rustic-witcher"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+[workspace]
+members = [
+    "rustic-anonymization-config",
+    "rustic-faker-types",
+    "rustic-duration",
+    "rustic-transformator",
+    "rustic-config-generator-cli",
+    "rustic-shell",
+    "rustic-anonymization-operator",
+    "rustic-cdc-operator",
+    "rustic-target-db",
+    "rustic-s3-config",
+    "rustic-local-data-importer-cli",
+    "rustic-mongo-buddy",
+    "rustic-base-transformations",
+    "rustic-faker-transformations",
+    "rustic-whole-table-transformator",
+    "rustic-bg-whole-table-transformator",
+]
+
+[workspace.dependencies]
+aws-config = { version = "1.5.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.31.0", features = ["behavior-version-latest"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"
+clap = { version = "4.5.4", features = ["derive"] }
+colored = "2.1.0"
+polars = { version = "0.40.0", features = [
+    "timezones",
+    "json",
+    "lazy",
+    "aws",
+    "parquet",
+    "dtype-decimal",
+    "streaming",
+    "strings",
+] }
+serde_json = { version = "1.0.117", features = [
+    "preserve_order",
+    "arbitrary_precision",
+] }
+serde = { version = "1.0", features = ["derive"] }
+async-trait = "0.1"
+indexmap = { version = "2.2.6", features = ["serde"] }
+rand = "0.8.5"
+toml = "0.8.12"
+fake = { version = "2.9.2", features = ["derive", "uuid"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+rand_seeder = "0.2.3"
+futures = "0.3.30"
+dms-cdc-operator = "0.1.14"
+deadpool-postgres = "0.14.0"
+pretty_assertions = "1.4.0"
+strum = { version = "0.26", features = ["derive"] }
+cliclack = "0.2.5"
+ctrlc = "3.4.2"
+console = "0.15.8"
+rustic-faker-types = { path = "rustic-faker-types" }
+rustic-anonymization-config = { path = "rustic-anonymization-config" }
+rustic-duration = { path = "rustic-duration" }
+rustic-transformator = { path = "rustic-transformator" }
+rustic-base-transformations = { path = "rustic-base-transformations" }
+rustic-faker-transformations = { path = "rustic-faker-transformations" }
+rustic-shell = { path = "rustic-shell" }
+rustic-anonymization-operator = { path = "rustic-anonymization-operator", features = [
+    "bg_source",
+] }
+rustic-cdc-operator = { path = "rustic-cdc-operator" }
+rustic-target-db = { path = "rustic-target-db" }
+rustic-s3-config = { path = "rustic-s3-config" }
+rustic-whole-table-transformator = { path = "rustic-whole-table-transformator" }
+rustic-bg-whole-table-transformator = { path = "rustic-bg-whole-table-transformator" }
+
+[dependencies]
+aws-config.workspace = true
+aws-sdk-s3.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+colored.workspace = true
+polars.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+async-trait.workspace = true
+indexmap.workspace = true
+rand.workspace = true
+toml.workspace = true
+fake.workspace = true
+rand_seeder.workspace = true
+futures.workspace = true
+dms-cdc-operator.workspace = true
+deadpool-postgres.workspace = true
+rustic-faker-types.workspace = true
+rustic-anonymization-config.workspace = true
+rustic-duration.workspace = true
+rustic-transformator.workspace = true
+rustic-shell.workspace = true
+rustic-anonymization-operator = { workspace = true, features = ["bg_source"] }
+rustic-cdc-operator.workspace = true
+rustic-target-db.workspace = true
+rustic-s3-config.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+
+[profile.dev]
+split-debuginfo = "unpacked"
+
+[[bin]]
+edition = "2021"
+name = "rustic-witcher"
+path = "src/main.rs"
+
+[[bin]]
+edition = "2021"
+name = "rustic-mongo-buddy"
+path = "rustic-mongo-buddy/src/main.rs"

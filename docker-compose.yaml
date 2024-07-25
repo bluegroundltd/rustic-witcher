@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:12.17-bullseye
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mydb
+    ports:
+      - "5438:5432"

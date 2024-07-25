@@ -1,0 +1,12 @@
+[package]
+name = "rustic-target-db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio.workspace = true
+tracing.workspace = true
+colored.workspace = true
+deadpool-postgres.workspace = true
+dms-cdc-operator.workspace = true
+rustic-shell.workspace = true

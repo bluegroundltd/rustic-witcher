@@ -1,0 +1,18 @@
+[package]
+name = "rustic-mongo-buddy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aws-config.workspace = true
+aws-sdk-s3.workspace = true
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+rustic-shell.workspace = true
+
+[[bin]]
+edition = "2021"
+name = "rustic-mongo-buddy"
+path = "src/main.rs"
