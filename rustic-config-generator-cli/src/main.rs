@@ -76,10 +76,9 @@ fn main() -> Result<()> {
             operation_type: custom_operation,
         }
     } else {
-        let anonymization_transformation_type = AnonymizationTransformationType::Replace {
+        AnonymizationTransformationType::Replace {
             replacement_value: cliclack::input("Enter the replacement value:").interact()?,
-        };
-        anonymization_transformation_type
+        }
     };
 
     let anonymization_column_transformation = AnonymizationColumnTransformation {

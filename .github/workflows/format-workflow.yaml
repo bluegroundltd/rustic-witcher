@@ -1,8 +1,10 @@
+name: Format & Clippy Pipeline
+
 on:
   workflow_call:
 
 env:
-  RUST_VERSION: 1.79.0
+  RUST_VERSION: 1.80.0
 
 jobs:
   format-and-clippy:
@@ -16,17 +18,14 @@ jobs:
         with:
           role-to-assume: ${{ secrets.CI_AWS_ROLE }}
           aws-region: eu-west-1
-      - name: Load CI_TOKEN
-        uses: bluegroundltd/gha-tooling/get-ssm-parameter@main
-        with:
-          ssm-parameter-path: ${{ secrets.CI_TOKEN_PATH }}
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          token: ${{ env.JENKINS_GITHUB_TOKEN }}
-      - uses: bluegroundltd/gha-tooling/setup-rust@main
+          token: ${{ secrets.CI_TOKEN }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-version: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+          toolchain: ${{ env.RUST_VERSION }}
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
       - name: Lint with Clippy
