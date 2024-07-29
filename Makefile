@@ -10,11 +10,12 @@ update_submodules_remote:
 	echo "\e[32;1mUpdate submodules\e[0m"
 	git submodule update --init --recursive --remote
 
+DOCKER_IMAGE_TAG?=master
 .PHONY: build_and_push_docker_image_bg
 build_and_push_docker_image_bg:
 	docker context use default
 	docker buildx build \
-	-t $(ECR_REGISTRY)/bluegroundltd/rustic-witcher:master \
+	-t $(ECR_REGISTRY)/bluegroundltd/rustic-witcher:$(DOCKER_IMAGE_TAG) \
 	-f Dockerfile . \
 	--build-arg ANONYMIZATION_MODE=bg_source \
 	--push \

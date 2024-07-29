@@ -370,7 +370,7 @@ impl CDCOperator {
     /// * `datab ase_name` - The name of the target database.
     /// * `schema_name` - The name of the schema in the target database.
     /// * `application_users` - Any application users to be granted with permissions,
-    /// in the target database.
+    ///     in the target database.
     pub async fn finalize_snapshot(
         target_pool: Pool,
         database_name: &str,

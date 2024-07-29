@@ -181,7 +181,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
                 // Single column `Transformators` need to be checked against the available
                 // columns on the Dataframe.
                 TransformatorType::SingleColumn { column_name } => {
-                    column_names.contains(&column_name)
+                    column_names.contains(column_name)
                 }
                 _ => true,
             })

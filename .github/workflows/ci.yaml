@@ -20,8 +20,6 @@ concurrency:
 
 env:
   CI: true
-  APP_NAME: "rustic-witcher"
-  ECR_REPO_NAME: "bluegroundltd/rustic-witcher"
 
 jobs:
   tests:
@@ -42,24 +40,34 @@ jobs:
         with:
           role-to-assume: ${{ secrets.CI_AWS_ROLE }}
           aws-region: eu-west-1
-      - name: Load CI_TOKEN
-        uses: bluegroundltd/gha-tooling/get-ssm-parameter@main
-        with:
-          ssm-parameter-path: ${{ secrets.CI_TOKEN_PATH }}
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          token: ${{ env.JENKINS_GITHUB_TOKEN }}
-      - uses: bluegroundltd/gha-tooling/short-sha@main
-        id: short-sha
-      - name: Determine Docker image tag
-        uses: bluegroundltd/gha-tooling/define-docker-image-tag@main
-        id: docker-image-tag
+          token: ${{ secrets.CI_TOKEN }}
+      - name: Determine short SHA
+        uses: actions/github-script@v7
+        id: determined-sha
         with:
-          main-branch-name: main
-          sha: ${{ steps.short-sha.outputs.short-sha }}
-      - uses: bluegroundltd/gha-tooling/build-and-push-docker-image@main
-        with:
-          ecr-repo-name: ${{ env.ECR_REPO_NAME }}
-          image-tag: ${{ steps.docker-image-tag.outputs.docker-image-tag }}
-          cache-enabled: "true"
+          script: |
+            const { ref } = context
+            const isMainBranch = ref === 'refs/heads/main'
+
+            let tag;
+
+            if(isMainBranch) {
+              tag = `master`
+            } else {
+              tag = ref.startsWith('refs/pull/')
+                ? context.payload.pull_request.head.sha
+                : context.sha
+              tag = tag.slice(0, 7)
+            }
+
+            core.setOutput('sha', tag)
+      - name: Upload to Blueground ECR
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          DOCKER_IMAGE_TAG: ${{ steps.determined-sha.outputs.sha }}
+        run: |
+          aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+          make build_and_push_docker_image_bg
