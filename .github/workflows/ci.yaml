@@ -67,7 +67,7 @@ jobs:
       - name: Upload to Blueground ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          DOCKER_IMAGE_TAG: ${{ steps.determined-sha.outputs.sha }}
+          RUSTIC_WITCHER_DOCKER_IMAGE_TAG: ${{ steps.determined-sha.outputs.sha }}
         run: |
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
           make build_and_push_docker_image_bg

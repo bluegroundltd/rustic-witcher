@@ -11,8 +11,6 @@ The following environment variables can be used to configure the behavior of the
 | DB_MAX_POOL_SIZE | 24 | The max pool size for database connections |
 | DB_KEEP_ALIVES | false | Whether to keep alive database connections |
 | SUPERUSER_URL | None | Target URL for the database that will contain anonymized data |
-| SUPERUSER_USERNAME | None | Username for the superuser of the target database|
-| SUPERUSER_PASSWORD | None | Password for the superuser of the target database|
 | CREATE_ROLE_AS_SUPERUSER | false | Whether to create `{SUPERUSER_USERNAME}` role as `superuser` in the target database |
 | S3_VPC_ENDPOINT | None | S3 VPC Endpoint for connection to S3 bucket of DMS exports through dev VPC |
 | S3_BUCKET_REGION | eu-west-1 | Region of Parquet files containing bucket |

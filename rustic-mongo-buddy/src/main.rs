@@ -51,7 +51,7 @@ async fn main() {
 
             info!(
                 "Importing data from {} to {} in {}",
-                mongo_host, s3_path, database_name
+                s3_path, mongo_host, database_name
             );
             let mongo_data_importer = MongoDataImporter::new(mongo_uri, s3_path, database_name);
             mongo_data_importer.import_data().await;
