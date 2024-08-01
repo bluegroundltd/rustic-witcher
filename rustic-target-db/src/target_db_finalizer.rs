@@ -84,6 +84,10 @@ impl TargetDBFinalizer {
 
         let db_client = self.target_db_pool.get().await.unwrap();
 
+        let joined_app_users = application_users.join(", ");
+
+        info!("Granting permissions for users: {joined_app_users}");
+
         for command in grant_commands {
             db_client.execute(command.as_str(), &[]).await.unwrap();
         }

@@ -2,7 +2,7 @@ ARG RUST_VERSION=1.80.0
 ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-alpine"
 
 # Build the actual app
-FROM $IMAGE_NAME as builder
+FROM $IMAGE_NAME AS builder
 WORKDIR /app
 RUN apk update && apk add gcc musl-dev libffi-dev openssl-dev pkgconfig
 COPY . .
@@ -17,7 +17,7 @@ RUN --mount=type=bind,source=src,target=src \
     cp ./target/release/rustic-mongo-buddy /bin/rustic/
 
 # Build the runtime image
-FROM $IMAGE_NAME as runtime
+FROM $IMAGE_NAME AS runtime
 WORKDIR /app
 RUN apk update && apk add mongodb-tools
 COPY --from=builder /bin/rustic/rustic-mongo-buddy /usr/local/bin/rustic-mongo-buddy

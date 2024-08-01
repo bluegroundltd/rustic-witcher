@@ -111,6 +111,7 @@ impl TargetDbPreparator {
 
         let superuser_username = superuser_username();
         let superuser_password = superuser_password();
+
         let create_role_query = format!(
             "CREATE ROLE {superuser_username}{superuser_query_addition}LOGIN PASSWORD '{superuser_password}'"
         );
@@ -191,9 +192,23 @@ fn should_create_role_as_superuser() -> bool {
 }
 
 fn superuser_username() -> String {
-    std::env::var("SUPERUSER_USERNAME").expect("SUPERUSER_USERNAME not set")
+    std::env::var("SUPERUSER_URL")
+        .expect("SUPERUSER_URL not set")
+        .split("://")
+        .collect::<Vec<_>>()[1]
+        .split(':')
+        .collect::<Vec<_>>()[0]
+        .to_string()
 }
 
 fn superuser_password() -> String {
-    std::env::var("SUPERUSER_PASSWORD").expect("SUPERUSER_PASSWORD not set")
+    std::env::var("SUPERUSER_URL")
+        .expect("SUPERUSER_URL not set")
+        .split("://")
+        .collect::<Vec<_>>()[1]
+        .split(':')
+        .collect::<Vec<_>>()[1]
+        .split('@')
+        .collect::<Vec<_>>()[0]
+        .to_string()
 }
