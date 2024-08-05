@@ -129,10 +129,19 @@ impl TargetDbPreparator {
             }
         }
 
-        info!("Granting permissions to {superuser_username} user");
+        info!("Altering role to set session replication!");
+        let alter_role_query =
+            format!("ALTER ROLE {superuser_username} SET session_replication_role = 'replica'");
+        let alter_role_result = client.execute(&alter_role_query, &[]).await;
+        match alter_role_result {
+            Ok(_) => info!("Role altered successfully"),
+            Err(e) => {
+                error!("Failed to alter role. Continuing... {}", e);
+            }
+        }
 
+        info!("Granting permissions to {superuser_username} user");
         let mut data_import_user_preparation_commands = vec![
-            format!("ALTER ROLE {superuser_username} SET session_replication_role = 'replica'",),
             format!(
                 "GRANT ALL ON SCHEMA {} TO {superuser_username}",
                 schema_name
