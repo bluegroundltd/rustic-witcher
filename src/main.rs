@@ -11,6 +11,8 @@ use dms_cdc_operator::{
     postgres::postgres_operator_impl::PostgresOperatorImpl,
 };
 
+use rustic_result_validator::config_loader::loader::ValidationConfigLoader;
+use rustic_result_validator::validator::result_validator::ResultValidator;
 use rustic_target_db::prepare_db_config;
 use tracing::info;
 
@@ -225,12 +227,28 @@ async fn main() -> Result<()> {
     .await;
 
     _ = rustic_cdc_operator::cdc_operator::CDCOperator::finalize_snapshot(
-        target_pool,
+        target_pool.clone(),
         cdc_operator_payload.database_name().as_str(),
         cdc_operator_payload.schema_name(),
         execution_payload.target_application_users(),
     )
     .await;
+
+    // Read the validations configs
+    let validation_config_loader = ValidationConfigLoader::new(
+        cdc_operator_payload.database_name(),
+        cdc_operator_payload.schema_name(),
+    );
+    let validation_configs = validation_config_loader.load_validations_config();
+
+    // Execute the validations
+    let result_validator = ResultValidator::new(
+        cdc_operator_payload.database_name(),
+        cdc_operator_payload.schema_name(),
+        target_pool,
+        validation_configs,
+    );
+    _ = result_validator.validate().await;
 
     // Close the connection pool
     info!("{}", "Closing connection pool".bold().green());

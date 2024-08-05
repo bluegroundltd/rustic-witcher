@@ -61,6 +61,7 @@ build_and_move_clis:
 CONFIGURATION_DATA_DIR := configuration_data
 INCLUSIONS_DIR := $(CONFIGURATION_DATA_DIR)/inclusions
 SEQUENCES_DIR := $(CONFIGURATION_DATA_DIR)/sequences_fix
+VALIDATIONS_DIR := $(CONFIGURATION_DATA_DIR)/validations
 
 # Create configuration directories
 .PHONY: create_configuration_dir
@@ -73,8 +74,8 @@ create_configuration_dir:
     else \
         echo "Directory $(CONFIGURATION_DATA_DIR) exists and is not empty."; \
     fi
-	@echo "Creating subdirectories $(INCLUSIONS_DIR) and $(SEQUENCES_DIR)..."
-	@mkdir -p $(INCLUSIONS_DIR) $(SEQUENCES_DIR)
+	@echo "Creating subdirectories $(INCLUSIONS_DIR), $(SEQUENCES_DIR) & $(VALIDATIONS_DIR)..."
+	@mkdir -p $(INCLUSIONS_DIR) $(SEQUENCES_DIR) $(VALIDATIONS_DIR)
 	@echo "Subdirectories created."
 
 # Create empty modules (for open source)
