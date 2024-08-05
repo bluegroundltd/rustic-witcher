@@ -1446,9 +1446,9 @@ checksum = "f77af9e75578c1ab34f5f04545a8b05be0c36fbd7a9bb3cf2d2a971e435fdbb9"
 
 [[package]]
 name = "dms-cdc-operator"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55c371d6c9c5f23a8b44aceafd4239b4acde4d64b20121a9fdc2190bf23c9bc2"
+checksum = "2b4656dade7b7791706f953e7362a4c4a1f05f7b7eb3d7d79a67ac62402e20e9"
 dependencies = [
  "anyhow",
  "async-trait",
