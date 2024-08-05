@@ -18,6 +18,6 @@ rustic-whole-table-transformator.workspace = true
 rustic-bg-whole-table-transformator = { workspace = true, optional = true }
 
 [features]
-default = ["open_source"]
+default = []
 bg_source = ["dep:rustic-bg-whole-table-transformator"]
 open_source = []
