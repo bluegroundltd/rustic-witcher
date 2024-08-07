@@ -8,6 +8,7 @@
     - [Docker Build](docs/DOCKER_BUILD.md)
     - [Configuration Generator](docs/CONFIG_GENERATOR_CLI.md)
     - [Source Code Tests](docs/SOURCE_CODE_TESTS.md)
+    - [Validations](docs/VALIDATIONS_CONFIG.md)
 3. [How it works](#how-it-works)
     - [Anonymization Configuration](docs/ANONYMIZATION_CONFIG.md)
     - [Environment Variables](docs/ENVIRONMENT_VARIABLES.md)

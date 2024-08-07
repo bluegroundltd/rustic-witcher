@@ -22,6 +22,7 @@ members = [
     "rustic-faker-transformations",
     "rustic-whole-table-transformator",
     "rustic-bg-whole-table-transformator",
+    "rustic-result-validator",
 ]
 
 [workspace.dependencies]
@@ -77,6 +78,7 @@ rustic-target-db = { path = "rustic-target-db" }
 rustic-s3-config = { path = "rustic-s3-config" }
 rustic-whole-table-transformator = { path = "rustic-whole-table-transformator" }
 rustic-bg-whole-table-transformator = { path = "rustic-bg-whole-table-transformator" }
+rustic-result-validator = { path = "rustic-result-validator" }
 
 [dependencies]
 aws-config.workspace = true
@@ -108,6 +110,7 @@ rustic-anonymization-operator = { workspace = true, features = ["bg_source"] }
 rustic-cdc-operator.workspace = true
 rustic-target-db.workspace = true
 rustic-s3-config.workspace = true
+rustic-result-validator.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

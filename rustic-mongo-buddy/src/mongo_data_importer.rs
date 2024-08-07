@@ -26,9 +26,10 @@ impl MongoDataImporter {
             return;
         }
 
-        let extracted_mongo_files_location = "/tmp/mongo-dump";
+        let extracted_mongo_files_location = format!("/tmp/mongo-dump/{}", self.database_name);
+        let extracted_mongo_files_location = extracted_mongo_files_location.as_str();
 
-        std::fs::create_dir(extracted_mongo_files_location)
+        std::fs::create_dir_all(extracted_mongo_files_location)
             .expect("Failed to create extraction directory");
 
         let compressed_mongo_dataset = self.download_dump_file().await;
@@ -96,14 +97,19 @@ impl MongoDataImporter {
         }
     }
 
-    async fn untar_file(compressed_mongo_dataset: &str, extracted_mongo_files_location: &str) {
-        let untar_command =
-            format!("tar -xf {compressed_mongo_dataset} -C {extracted_mongo_files_location}");
+    async fn untar_file(
+        compressed_mongo_dataset: &str,
+        extracted_mongo_files_location: impl Into<String>,
+    ) {
+        let untar_command = format!(
+            "tar -xf {compressed_mongo_dataset} -C {}",
+            extracted_mongo_files_location.into()
+        );
 
         ShellCommandExecutor::execute_cmd(&untar_command).await;
     }
 
-    async fn execute_mongo_restore(&self, mongo_data_folder: &str) {
+    async fn execute_mongo_restore(&self, mongo_data_folder: impl Into<String>) {
         let ns_to = self
             .mongo_uri
             .split('/')
@@ -112,10 +118,12 @@ impl MongoDataImporter {
             .split('?')
             .next()
             .unwrap();
+        let dir = format!("{}/{}/", mongo_data_folder.into(), self.database_name);
+
         let mongo_restore_commands = [
             String::from("mongorestore"),
             format!("--uri={}", self.mongo_uri),
-            format!("--dir={mongo_data_folder}/{}", self.database_name),
+            format!("--dir={}", dir),
             format!("--nsFrom={}.*", self.database_name),
             format!("--nsTo={ns_to}.*"),
             String::from("--drop"),

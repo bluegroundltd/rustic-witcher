@@ -4308,6 +4308,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustic-result-validator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "colored",
+ "deadpool-postgres",
+ "serde",
+ "toml",
+ "tracing",
+]
+
+[[package]]
 name = "rustic-s3-config"
 version = "0.1.0"
 dependencies = [
@@ -4380,6 +4392,7 @@ dependencies = [
  "rustic-cdc-operator",
  "rustic-duration",
  "rustic-faker-types",
+ "rustic-result-validator",
  "rustic-s3-config",
  "rustic-shell",
  "rustic-target-db",
