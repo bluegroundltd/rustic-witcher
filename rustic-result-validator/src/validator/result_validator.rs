@@ -4,6 +4,32 @@ use tracing::info;
 
 use crate::config_structs::{root_struct::Validations, value_check_type_struct::ValueCheckType};
 
+/// The `ResultValidator` struct is responsible for validating results from a database.
+///
+/// It contains the following fields:
+/// - `database_name`: The name of the database to validate.
+/// - `schema_name`: The name of the schema to validate.
+/// - `target_db_pool`: The connection pool for the target database.
+/// - `validations`: The validations to perform.
+///
+/// # Example
+///
+/// ```
+/// use deadpool_postgres::Pool;
+/// use crate::config_structs::{root_struct::Validations, value_check_type_struct::ValueCheckType};
+///
+/// let target_db_pool: Pool = // create a connection pool for the target database
+/// let validations: Validations = // define the validations to perform
+///
+/// let result_validator = ResultValidator::new(
+///     "database_name",
+///     "schema_name",
+///     target_db_pool,
+///     validations,
+/// );
+///
+/// result_validator.validate().await;
+/// ```
 pub struct ResultValidator {
     pub database_name: String,
     pub schema_name: String,
@@ -12,6 +38,31 @@ pub struct ResultValidator {
 }
 
 impl ResultValidator {
+    /// Creates a new `ResultValidator` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `database_name` - The name of the database to validate.
+    /// * `schema_name` - The name of the schema to validate.
+    /// * `target_db_pool` - The connection pool for the target database.
+    /// * `validations` - The validations to perform.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use deadpool_postgres::Pool;
+    /// use crate::config_structs::{root_struct::Validations, value_check_type_struct::ValueCheckType};
+    ///
+    /// let target_db_pool: Pool = // create a connection pool for the target database
+    /// let validations: Validations = // define the validations to perform
+    ///
+    /// let result_validator = ResultValidator::new(
+    ///     "database_name",
+    ///     "schema_name",
+    ///     target_db_pool,
+    ///     validations,
+    /// );
+    /// ```
     pub fn new(
         database_name: impl Into<String>,
         schema_name: impl Into<String>,
@@ -26,6 +77,28 @@ impl ResultValidator {
         }
     }
 
+    /// Validates the results from the database.
+    ///
+    /// This method performs the specified validations on the target database.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use deadpool_postgres::Pool;
+    /// use crate::config_structs::{root_struct::Validations, value_check_type_struct::ValueCheckType};
+    ///
+    /// let target_db_pool: Pool = // create a connection pool for the target database
+    /// let validations: Validations = // define the validations to perform
+    ///
+    /// let result_validator = ResultValidator::new(
+    ///     "database_name",
+    ///     "schema_name",
+    ///     target_db_pool,
+    ///     validations,
+    /// );
+    ///
+    /// result_validator.validate().await;
+    /// ```
     pub async fn validate(&self) {
         let client = self.target_db_pool.get().await.unwrap();
         let validations = &self.validations.validations;

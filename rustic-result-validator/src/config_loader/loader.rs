@@ -3,12 +3,27 @@ use tracing::info;
 use crate::config_structs::root_struct::Validations;
 use std::{env, fs, path::PathBuf};
 
+/// A struct for loading validation configurations.
 pub struct ValidationConfigLoader {
     pub database_name: String,
     pub schema_name: String,
 }
 
 impl ValidationConfigLoader {
+    /// Creates a new `ValidationConfigLoader` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `database_name` - The name of the database.
+    /// * `schema_name` - The name of the schema.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use crate::config_loader::ValidationConfigLoader;
+    ///
+    /// let loader = ValidationConfigLoader::new("my_database", "my_schema");
+    /// ```
     pub fn new(database_name: impl Into<String>, schema_name: impl Into<String>) -> Self {
         Self {
             database_name: database_name.into(),
@@ -16,6 +31,21 @@ impl ValidationConfigLoader {
         }
     }
 
+    /// Loads the validations configuration.
+    ///
+    /// # Returns
+    ///
+    /// The loaded `Validations` struct.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use crate::config_loader::ValidationConfigLoader;
+    /// use crate::config_structs::root_struct::Validations;
+    ///
+    /// let loader = ValidationConfigLoader::new("my_database", "my_schema");
+    /// let validations = loader.load_validations_config();
+    /// ```
     pub fn load_validations_config(&self) -> Validations {
         let mut conf_file_path = PathBuf::new();
         conf_file_path.push(env::current_dir().unwrap());
