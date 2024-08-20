@@ -92,6 +92,10 @@ create_empty_modules:
 .PHONY: initialize_open_source
 initialize_open_source: create_configuration_dir create_empty_modules
 
+.PHONY: initialize_bg
+initialize_bg:
+	gh repo clone bluegroundltd/rustic-witcher -- --recurse-submodules
+
 .PHONY: run_tests_open_source
 run_tests_open_source:
 	cargo nextest run --all --features rustic-anonymization-operator/open_source
