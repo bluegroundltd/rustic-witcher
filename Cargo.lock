@@ -4410,7 +4410,10 @@ dependencies = [
 name = "rustic-cdc-operator"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "aws-sdk-s3",
+ "chrono",
  "colored",
  "deadpool-postgres",
  "dms-cdc-operator",
@@ -4419,6 +4422,7 @@ dependencies = [
  "rustic-anonymization-operator",
  "rustic-duration",
  "rustic-target-db",
+ "tokio",
  "tracing",
 ]
 
@@ -4529,6 +4533,7 @@ dependencies = [
  "colored",
  "deadpool-postgres",
  "dms-cdc-operator",
+ "futures",
  "rustic-shell",
  "tokio",
  "tracing",

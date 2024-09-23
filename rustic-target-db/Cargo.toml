@@ -9,4 +9,5 @@ tracing.workspace = true
 colored.workspace = true
 deadpool-postgres.workspace = true
 dms-cdc-operator.workspace = true
+futures.workspace = true
 rustic-shell.workspace = true

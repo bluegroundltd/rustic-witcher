@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
+async-trait.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
 tracing.workspace = true
 aws-sdk-s3.workspace = true
 dms-cdc-operator.workspace = true

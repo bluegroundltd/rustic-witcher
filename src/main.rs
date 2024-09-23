@@ -1,11 +1,11 @@
 use std::env;
+use std::sync::Arc;
 
 use anyhow::Result;
 use colored::Colorize;
 
 use clap::{Parser, Subcommand};
 use dms_cdc_operator::cdc::cdc_operator_mode::ModeValueEnum;
-use dms_cdc_operator::postgres::postgres_operator::PostgresOperator;
 use dms_cdc_operator::{
     cdc::{cdc_operator_payload::CDCOperatorPayload, snapshot_payload::CDCOperatorSnapshotPayload},
     postgres::postgres_operator_impl::PostgresOperatorImpl,
@@ -85,7 +85,10 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_thread_ids(true)
+        .with_thread_names(true)
+        .init();
 
     let cli = Cli::parse();
     let (execution_payload, cdc_operator_payload) = match cli.command {
@@ -219,10 +222,10 @@ async fn main() -> Result<()> {
 
     // Snapshot the source database & anonymize the data
     _ = rustic_cdc_operator::cdc_operator::CDCOperator::snapshot(
-        &cdc_operator_snapshot_payload,
-        &source_postgres_operator,
-        &target_postgres_operator,
-        &s3_client,
+        Arc::new(cdc_operator_snapshot_payload),
+        Arc::new(source_postgres_operator),
+        Arc::new(target_postgres_operator),
+        Arc::new(s3_client),
     )
     .await;
 
@@ -252,8 +255,8 @@ async fn main() -> Result<()> {
 
     // Close the connection pool
     info!("{}", "Closing connection pool".bold().green());
-    source_postgres_operator.close_connection_pool().await;
-    target_postgres_operator.close_connection_pool().await;
+    // source_postgres_operator.close_connection_pool().await;
+    // target_postgres_operator.close_connection_pool().await;
 
     Ok(())
 }

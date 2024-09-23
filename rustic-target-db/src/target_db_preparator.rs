@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, sync::Arc};
 
 use colored::Colorize;
 use deadpool_postgres::{GenericClient, Pool};
@@ -6,6 +6,7 @@ use dms_cdc_operator::{
     cdc::snapshot_payload::CDCOperatorSnapshotPayload,
     postgres::{postgres_operator::PostgresOperator, postgres_operator_impl::PostgresOperatorImpl},
 };
+use futures::stream::{self, StreamExt};
 use rustic_shell::shell_command_executor::ShellCommandExecutor;
 use tokio::fs;
 use tracing::{debug, error, info};
@@ -184,12 +185,31 @@ impl TargetDbPreparator {
         };
 
         let client = self.target_db_pool.get().await.unwrap();
+        let client = Arc::new(&client);
 
-        for sequence_fix in sequence_ownership_fixes {
-            info!("Sequence ownership fix: [{sequence_fix}]");
+        stream::iter(sequence_ownership_fixes)
+            .for_each_concurrent(20, |sequence_fix| {
+                // Ensure client is cloned for each concurrent task
+                let client = Arc::clone(&client);
+                async move {
+                    info!("Sequence ownership fix: [{sequence_fix}]");
 
-            client.execute(&sequence_fix, &[]).await.unwrap();
-        }
+                    // Execute the fix using the client, properly handle any potential errors
+                    if let Err(e) = client.execute(&sequence_fix, &[]).await {
+                        error!(
+                            "Failed to execute sequence fix: [{sequence_fix}]. Error: {:?}",
+                            e
+                        );
+                    }
+                }
+            })
+            .await;
+
+        // for sequence_fix in sequence_ownership_fixes {
+        //     info!("Sequence ownership fix: [{sequence_fix}]");
+
+        //     client.execute(&sequence_fix, &[]).await.unwrap();
+        // }
     }
 }
 

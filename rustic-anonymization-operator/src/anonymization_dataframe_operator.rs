@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::Result;
@@ -19,12 +20,12 @@ use rustic_whole_table_transformator::whole_table_transformator::WholeTableTrans
 use tracing::error;
 use tracing::{debug, info};
 
-pub struct AnonymizationDataFrameOperator<'a> {
-    s3_client: &'a S3Client,
+pub struct AnonymizationDataFrameOperator {
+    s3_client: Arc<S3Client>,
 }
 
-impl<'a> AnonymizationDataFrameOperator<'a> {
-    pub fn new(s3_client: &'a S3Client) -> Self {
+impl AnonymizationDataFrameOperator {
+    pub fn new(s3_client: Arc<S3Client>) -> Self {
         Self { s3_client }
     }
 }
@@ -32,7 +33,7 @@ impl<'a> AnonymizationDataFrameOperator<'a> {
 #[async_trait]
 /// Implements the `DataframeOperator` trait for the `AnonymizedDataFrameOperator` struct.
 /// This struct provides methods for creating a dataframe from a Parquet file and applying anonymization transformations.
-impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
+impl DataframeOperator for AnonymizationDataFrameOperator {
     /// Creates a dataframe from a Parquet file.
     ///
     /// # Arguments
@@ -141,7 +142,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         } else {
             if should_upload_anonymized_files() {
                 copy_parquet_file_to_anonymized_bucket(
-                    self.s3_client,
+                    Arc::clone(&self.s3_client),
                     payload.bucket_name.as_str(),
                     payload.key.as_str(),
                 )
@@ -213,7 +214,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         }
 
         // Upload anonymized Parquet files to anonymized S3 bucket.
-        upload_parquet_file(self.s3_client, &mut df, payload.key.as_str()).await;
+        upload_parquet_file(Arc::clone(&self.s3_client), &mut df, payload.key.as_str()).await;
 
         Ok(Some(df))
     }
@@ -221,7 +222,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
 
 // Copy Parquet file to anonymized S3 bucket.
 async fn copy_parquet_file_to_anonymized_bucket(
-    s3_client: &S3Client,
+    s3_client: Arc<S3Client>,
     parquet_s3_bucket: &str,
     parquet_s3_key: &str,
 ) {
@@ -248,7 +249,7 @@ async fn copy_parquet_file_to_anonymized_bucket(
 }
 
 // Upload anonymized Parquet files to anonymized S3 bucket.
-async fn upload_parquet_file(s3_client: &S3Client, df: &mut DataFrame, parquet_s3_key: &str) {
+async fn upload_parquet_file(s3_client: Arc<S3Client>, df: &mut DataFrame, parquet_s3_key: &str) {
     // Upload anonymized Parquet files to anonymized S3 bucket.
     let df_to_parquet_start = Instant::now();
 
