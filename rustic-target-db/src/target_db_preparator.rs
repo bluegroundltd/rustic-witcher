@@ -141,7 +141,7 @@ impl TargetDbPreparator {
         }
 
         info!("Granting permissions to {superuser_username} user");
-        let mut data_import_user_preparation_commands = vec![
+        let data_import_user_preparation_commands = vec![
             format!(
                 "GRANT ALL ON SCHEMA {} TO {superuser_username}",
                 schema_name
@@ -157,11 +157,12 @@ impl TargetDbPreparator {
         ];
 
         // If the role should not be created as a superuser, grant the target superuser to the data import user
-        if !should_create_role_as_superuser {
-            data_import_user_preparation_commands.push(format!(
-                "GRANT {target_superuser_username} TO {superuser_username}"
-            ));
-        }
+        // Commented out in order to re-evaluate after supporting Postgres 16+
+        // if !should_create_role_as_superuser {
+        //     data_import_user_preparation_commands.push(format!(
+        //         "GRANT {target_superuser_username} TO {superuser_username}"
+        //     ));
+        // }
 
         for command in data_import_user_preparation_commands {
             client
