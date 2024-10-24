@@ -95,7 +95,7 @@ impl TargetDbPreparator {
     pub async fn create_data_import_user(
         &self,
         schema_name: &str,
-        target_superuser_username: &str,
+        _target_superuser_username: &str,
     ) {
         let client = self.target_db_pool.get().await.unwrap();
         let should_create_role_as_superuser = should_create_role_as_superuser();
