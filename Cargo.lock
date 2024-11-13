@@ -4525,6 +4525,7 @@ dependencies = [
 name = "rustic-target-db"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "colored",
  "deadpool-postgres",
  "dms-cdc-operator",

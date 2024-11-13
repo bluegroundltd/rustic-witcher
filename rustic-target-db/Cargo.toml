@@ -10,3 +10,4 @@ colored.workspace = true
 deadpool-postgres.workspace = true
 dms-cdc-operator.workspace = true
 rustic-shell.workspace = true
+anyhow.workspace = true

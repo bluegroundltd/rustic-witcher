@@ -1,12 +1,12 @@
-use std::env;
-
+use anyhow::Result;
 use colored::Colorize;
-use deadpool_postgres::{GenericClient, Pool};
+use deadpool_postgres::{GenericClient, Object, Pool};
 use dms_cdc_operator::{
     cdc::snapshot_payload::CDCOperatorSnapshotPayload,
     postgres::{postgres_operator::PostgresOperator, postgres_operator_impl::PostgresOperatorImpl},
 };
 use rustic_shell::shell_command_executor::ShellCommandExecutor;
+use std::env;
 use tokio::fs;
 use tracing::{debug, error, info};
 
@@ -92,11 +92,7 @@ impl TargetDbPreparator {
     ///
     /// * `schema_name` - The name of the schema that the data import user will operate on.
     ///
-    pub async fn create_data_import_user(
-        &self,
-        schema_name: &str,
-        _target_superuser_username: &str,
-    ) {
+    pub async fn create_data_import_user(&self, schema_name: &str, target_username: &str) {
         let client = self.target_db_pool.get().await.unwrap();
         let should_create_role_as_superuser = should_create_role_as_superuser();
 
@@ -141,7 +137,7 @@ impl TargetDbPreparator {
         }
 
         info!("Granting permissions to {superuser_username} user");
-        let data_import_user_preparation_commands = vec![
+        let mut data_import_user_preparation_commands = vec![
             format!(
                 "GRANT ALL ON SCHEMA {} TO {superuser_username}",
                 schema_name
@@ -157,12 +153,21 @@ impl TargetDbPreparator {
         ];
 
         // If the role should not be created as a superuser, grant the target superuser to the data import user
-        // Commented out in order to re-evaluate after supporting Postgres 16+
-        // if !should_create_role_as_superuser {
-        //     data_import_user_preparation_commands.push(format!(
-        //         "GRANT {target_superuser_username} TO {superuser_username}"
-        //     ));
-        // }
+        // Required for supporting Postgres 16+
+        let postgres_version = get_target_postgres_version(&client).await.unwrap();
+
+        // Get extra commands based on the Postgres version
+        let version_based_extra_commands = version_based_extra_commands(
+            postgres_version,
+            target_username.to_string(),
+            superuser_username,
+        );
+
+        // Add the extra commands to the data import user preparation commands,
+        // only if we do no want to create the role as a superuser
+        if !should_create_role_as_superuser {
+            data_import_user_preparation_commands.extend(version_based_extra_commands);
+        }
 
         for command in data_import_user_preparation_commands {
             client
@@ -191,6 +196,37 @@ impl TargetDbPreparator {
 
             client.execute(&sequence_fix, &[]).await.unwrap();
         }
+    }
+}
+
+async fn get_target_postgres_version(client: &Object) -> Result<i32> {
+    // Execute the SQL query to get the PostgreSQL version
+    let row = client
+        .query_one(
+            "SELECT setting FROM pg_settings WHERE name = 'server_version'",
+            &[],
+        )
+        .await?;
+
+    // Extract the version from the row
+    let version: String = row.get(0);
+
+    info!("PostgreSQL Version: {}", version);
+
+    let version_parts: Vec<&str> = version.split('.').collect();
+    let major_version: i32 = version_parts[0].parse().unwrap();
+
+    Ok(major_version)
+}
+
+fn version_based_extra_commands(
+    version: i32,
+    target_username: String,
+    superuser_username: String,
+) -> Vec<String> {
+    match version {
+        v if v >= 16 => vec![format!("GRANT {target_username} TO {superuser_username}")],
+        _ => vec![],
     }
 }
 
