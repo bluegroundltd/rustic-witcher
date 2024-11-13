@@ -10,9 +10,9 @@ mod tests {
     #[test]
     fn test_transform() {
         let mut rng = StdRng::seed_from_u64(42);
-        let fake_multi_email_transformator = FakeMultiEmailTransformator {
-            column_name: "a".to_string(),
-        };
+        let fake_multi_email_transformator = FakeMultiEmailTransformator::builder()
+            .column_name("a".to_string())
+            .build();
         let df = DataFrame::new(vec![Series::new("a", &["foo, bar, qux"])]).unwrap();
         let transformed = fake_multi_email_transformator.transform(&df, &mut rng);
 

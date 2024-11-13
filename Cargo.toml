@@ -63,6 +63,7 @@ strum = { version = "0.26", features = ["derive"] }
 cliclack = "0.3.2"
 ctrlc = "3.4"
 console = "0.15.8"
+bon = "3.0"
 rustic-faker-types = { path = "rustic-faker-types" }
 rustic-anonymization-config = { path = "rustic-anonymization-config" }
 rustic-duration = { path = "rustic-duration" }
@@ -101,6 +102,7 @@ rand_seeder.workspace = true
 futures.workspace = true
 dms-cdc-operator.workspace = true
 deadpool-postgres.workspace = true
+bon.workspace = true
 rustic-faker-types.workspace = true
 rustic-anonymization-config.workspace = true
 rustic-duration.workspace = true
