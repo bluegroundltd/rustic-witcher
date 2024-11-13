@@ -1,16 +1,14 @@
+use bon::Builder;
 use colored::Colorize;
 use deadpool_postgres::Pool;
 use tracing::info;
 
+#[derive(Builder)]
 pub struct TargetDBFinalizer {
     pub target_db_pool: Pool,
 }
 
 impl TargetDBFinalizer {
-    pub fn new(target_db_pool: Pool) -> Self {
-        Self { target_db_pool }
-    }
-
     /// Updates the sequence values by preparing the relevant SETVAL
     /// queries.
     ///

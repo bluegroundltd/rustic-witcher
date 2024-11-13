@@ -10,3 +10,4 @@ toml.workspace = true
 anyhow.workspace = true
 colored.workspace = true
 deadpool-postgres.workspace = true
+bon.workspace = true

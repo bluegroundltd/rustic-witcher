@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bon::Builder;
 use colored::Colorize;
 use deadpool_postgres::{GenericClient, Object, Pool};
 use dms_cdc_operator::{
@@ -13,6 +14,7 @@ use tracing::{debug, error, info};
 const RUSTIC_WITCHER_APP_NAME_PREFIX: &str = "rustic_witcher";
 const PG_DUMP_FILE_NAME: &str = "pg_dump.sql";
 
+#[derive(Builder)]
 pub struct TargetDbPreparator {
     pub source_db_pool: Pool,
     pub target_db_pool: Pool,
@@ -154,10 +156,10 @@ impl TargetDbPreparator {
 
         // If the role should not be created as a superuser, grant the target superuser to the data import user
         // Required for supporting Postgres 16+
-        let postgres_version = get_target_postgres_version(&client).await.unwrap();
+        let postgres_version = Self::get_target_postgres_version(&client).await.unwrap();
 
         // Get extra commands based on the Postgres version
-        let version_based_extra_commands = version_based_extra_commands(
+        let version_based_extra_commands = Self::version_based_extra_commands(
             postgres_version,
             target_username.to_string(),
             superuser_username,
@@ -197,36 +199,36 @@ impl TargetDbPreparator {
             client.execute(&sequence_fix, &[]).await.unwrap();
         }
     }
-}
 
-async fn get_target_postgres_version(client: &Object) -> Result<i32> {
-    // Execute the SQL query to get the PostgreSQL version
-    let row = client
-        .query_one(
-            "SELECT setting FROM pg_settings WHERE name = 'server_version'",
-            &[],
-        )
-        .await?;
+    async fn get_target_postgres_version(client: &Object) -> Result<i32> {
+        // Execute the SQL query to get the PostgreSQL version
+        let row = client
+            .query_one(
+                "SELECT setting FROM pg_settings WHERE name = 'server_version'",
+                &[],
+            )
+            .await?;
 
-    // Extract the version from the row
-    let version: String = row.get(0);
+        // Extract the version from the row
+        let version: String = row.get(0);
 
-    info!("PostgreSQL Version: {}", version);
+        info!("PostgreSQL Version: {}", version);
 
-    let version_parts: Vec<&str> = version.split('.').collect();
-    let major_version: i32 = version_parts[0].parse().unwrap();
+        let version_parts: Vec<&str> = version.split('.').collect();
+        let major_version: i32 = version_parts[0].parse().unwrap();
 
-    Ok(major_version)
-}
+        Ok(major_version)
+    }
 
-fn version_based_extra_commands(
-    version: i32,
-    target_username: String,
-    superuser_username: String,
-) -> Vec<String> {
-    match version {
-        v if v >= 16 => vec![format!("GRANT {target_username} TO {superuser_username}")],
-        _ => vec![],
+    fn version_based_extra_commands(
+        version: i32,
+        target_username: String,
+        superuser_username: String,
+    ) -> Vec<String> {
+        match version {
+            v if v >= 16 => vec![format!("GRANT {target_username} TO {superuser_username}")],
+            _ => vec![],
+        }
     }
 }
 

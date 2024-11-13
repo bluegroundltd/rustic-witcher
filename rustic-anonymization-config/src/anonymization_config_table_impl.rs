@@ -80,9 +80,11 @@ impl AnonymizationConfigTable {
             "fake_email_transformation" => {
                 Box::new(FakeEmailTransformator::new(column_name, retain_if_empty))
             }
-            "fake_multi_email_transformation" => {
-                Box::new(FakeMultiEmailTransformator::new(column_name))
-            }
+            "fake_multi_email_transformation" => Box::new(
+                FakeMultiEmailTransformator::builder()
+                    .column_name(column_name.to_string())
+                    .build(),
+            ),
             "fake_companyname_transformation" => Box::new(FakeCompanyNameTransformator::new(
                 column_name,
                 retain_if_empty,

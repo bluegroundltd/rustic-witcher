@@ -1,3 +1,4 @@
+use bon::Builder;
 use polars::prelude::*;
 use rand::rngs::StdRng;
 use rustic_transformator::transformator_type::TransformatorType;
@@ -6,16 +7,9 @@ use fake::{faker::internet::raw::SafeEmail, locales::EN, Fake};
 use rustic_transformator::transformator::Transformator;
 use rustic_transformator::transformator_output::TransformatorOutput;
 
+#[derive(Builder)]
 pub struct FakeMultiEmailTransformator {
-    pub column_name: String,
-}
-
-impl FakeMultiEmailTransformator {
-    pub fn new(column_name: impl Into<String>) -> Self {
-        Self {
-            column_name: column_name.into(),
-        }
-    }
+    column_name: String,
 }
 
 impl Transformator for FakeMultiEmailTransformator {

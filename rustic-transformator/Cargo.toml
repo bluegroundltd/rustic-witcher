@@ -9,5 +9,6 @@ tracing.workspace = true
 fake.workspace = true
 rand.workspace = true
 rand_seeder.workspace = true
+bon.workspace = true
 rustic-faker-types.workspace = true
 rustic-duration.workspace = true
