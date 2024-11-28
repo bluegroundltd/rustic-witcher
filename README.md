@@ -1,5 +1,9 @@
 # RusticWitcher: Your ultimate toolkit for data export and anonymization
 
+<p align="center">
+<img src="https://raw.githubusercontent.com/bluegroundltd/rustic-witcher/refs/heads/main/docs/images/rustic_witcher_icon.png" height="400" />
+</p>
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. Usage
