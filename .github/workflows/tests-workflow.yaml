@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  RUST_VERSION: 1.81.0
+  RUST_VERSION: 1.82.0
 
 jobs:
   tests:
