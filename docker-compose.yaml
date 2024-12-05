@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: public.ecr.aws/docker/library/postgres:12.17-bullseye
+    image: public.ecr.aws/docker/library/postgres:17.2-bullseye
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
