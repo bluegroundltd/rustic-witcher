@@ -18,6 +18,7 @@ build_and_push_docker_image_bg:
 	-t $(ECR_REGISTRY)/bluegroundltd/rustic-witcher:$(RUSTIC_WITCHER_DOCKER_IMAGE_TAG) \
 	-f Dockerfile . \
 	--build-arg ANONYMIZATION_MODE=bg_source \
+	--build-arg POSTGRES_CLIENT_VERSION=postgresql-client-17 \
 	--push \
 	--cache-from $(ECR_REGISTRY)/bluegroundltd/rustic-witcher:master
 
