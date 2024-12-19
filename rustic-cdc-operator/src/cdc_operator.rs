@@ -259,15 +259,12 @@ impl CDCOperator {
                             // in case of altered column names or dropped columns
                             let df_column_fields = current_df.get_columns();
 
-                            df_column_fields.iter().for_each(|field| {
-                                info!("Field: {:?}", field);
-                            });
-
                             let has_schema_diff = df_column_fields
                                 .iter()
                                 .filter(|field| {
-                                    field.name().as_str() != "Op"
-                                        && field.name().as_str() != "_dms_ingestion_timestamp"
+                                    let field_name = field.name();
+                                    field_name != "Op"
+                                        && field_name != "_dms_ingestion_timestamp"
                                 })
                                 .any(|field| !source_table_columns.contains_key(field.name().as_str()));
 
@@ -275,7 +272,7 @@ impl CDCOperator {
                             // we will trigger a new full load through DMS.
                             if has_schema_diff {
                                 panic!(
-                                    "Schema of table is not the same as the schema of the Parquet file"
+                                    "Schema of table '{}' is not the same as the schema of the Parquet file", table
                                 );
                             }
 
