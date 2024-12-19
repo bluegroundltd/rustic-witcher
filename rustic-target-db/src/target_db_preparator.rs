@@ -51,7 +51,9 @@ impl TargetDbPreparator {
     ///
     pub async fn drop_schema(&self, cdc_operator_snapshot_payload: &CDCOperatorSnapshotPayload) {
         // Create a PostgresOperatorImpl instance
-        let target_postgres_operator = PostgresOperatorImpl::new(self.target_db_pool.clone());
+        let target_postgres_operator = PostgresOperatorImpl::builder()
+            .pool(self.target_db_pool.clone())
+            .build();
 
         target_postgres_operator
             .drop_schema(cdc_operator_snapshot_payload.schema_name().as_str())

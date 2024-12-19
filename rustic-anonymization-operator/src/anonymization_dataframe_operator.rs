@@ -114,7 +114,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
             if let Some(table) = table {
                 if is_first_load_file {
                     let slice_size = table.keep_num_of_records.unwrap_or(df.num_rows().unwrap());
-                    df.with_n_rows(Some(slice_size))
+                    df.with_slice(Some((0, slice_size)))
                         .read_parallel(ParallelStrategy::Auto)
                         .finish()
                         .unwrap()

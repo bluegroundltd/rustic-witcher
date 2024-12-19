@@ -150,25 +150,25 @@ async fn main() -> Result<()> {
             // since they will be the same.
             let target_postgres_url = format!("{target_postgres_url}/{source_database_name}");
 
-            let cdc_operator_payload = CDCOperatorPayload::new(
-                bucket_name,
-                s3_prefix,
-                source_postgres_url,
-                target_postgres_url,
-                database_schema,
-                included_tables,
-                excluded_tables,
-                mode,
-                None, //not used but required for the payload
-                None, //not used but required for the payload
-                1000, //not used but required for the payload
-                max_connections,
-                0,     //not used but required for the payload
-                false, //not used but required for the payload
-                false, //not used but required for the payload
-                false, //not used but required for the payload
-                false, //not used but required for the payload
-            );
+            let cdc_operator_payload = CDCOperatorPayload::builder()
+                .bucket_name(bucket_name)
+                .s3_prefix(s3_prefix)
+                .source_postgres_url(source_postgres_url)
+                .target_postgres_url(target_postgres_url)
+                .database_schema(database_schema)
+                .included_tables(included_tables)
+                .excluded_tables(excluded_tables)
+                .mode(mode)
+                .start_date(None)
+                .stop_date(None)
+                .chunk_size(1000)
+                .max_connections(max_connections)
+                .start_position(0)
+                .only_datadiff(false)
+                .only_snapshot(false)
+                .accept_invalid_certs_first_db(false)
+                .accept_invalid_certs_second_db(false)
+                .build();
 
             (execution_payload, cdc_operator_payload)
         }
@@ -177,19 +177,19 @@ async fn main() -> Result<()> {
     // Connect to the Postgres database
     info!("{}", "Connecting to source Postgres DB".bold().green());
 
-    let cdc_operator_snapshot_payload = CDCOperatorSnapshotPayload::new(
-        cdc_operator_payload.bucket_name(),
-        cdc_operator_payload.s3_prefix(),
-        cdc_operator_payload.database_name(),
-        cdc_operator_payload.schema_name(),
-        cdc_operator_payload.included_tables().to_vec(),
-        cdc_operator_payload.excluded_tables().to_vec(),
-        cdc_operator_payload.mode(),
-        cdc_operator_payload.stop_date().map(|x| x.to_string()),
-        cdc_operator_payload.stop_date().map(|x| x.to_string()),
-        cdc_operator_payload.source_postgres_url().to_string(),
-        cdc_operator_payload.target_postgres_url().to_string(),
-    );
+    let cdc_operator_snapshot_payload = CDCOperatorSnapshotPayload::builder()
+        .bucket_name(cdc_operator_payload.bucket_name())
+        .key(cdc_operator_payload.s3_prefix())
+        .database_name(cdc_operator_payload.database_name())
+        .schema_name(cdc_operator_payload.schema_name())
+        .included_tables(cdc_operator_payload.included_tables().to_vec())
+        .excluded_tables(cdc_operator_payload.excluded_tables().to_vec())
+        .mode(cdc_operator_payload.mode())
+        .maybe_stop_date(cdc_operator_payload.stop_date().map(|x| x.to_string()))
+        .maybe_start_date(cdc_operator_payload.stop_date().map(|x| x.to_string()))
+        .source_postgres_url(cdc_operator_payload.source_postgres_url().to_string())
+        .target_postgres_url(cdc_operator_payload.target_postgres_url().to_string())
+        .build();
 
     // Prepare target DB for snapshot
     _ = rustic_cdc_operator::cdc_operator::CDCOperator::prepare_for_snapshot(
@@ -202,7 +202,7 @@ async fn main() -> Result<()> {
     let source_pool = source_cfg
         .create_pool(Some(Runtime::Tokio1), NoTls)
         .unwrap();
-    let source_postgres_operator = PostgresOperatorImpl::new(source_pool);
+    let source_postgres_operator = PostgresOperatorImpl::builder().pool(source_pool).build();
 
     // After this point we need to use the DB role that has
     // session_replication_role set to replica
@@ -213,7 +213,9 @@ async fn main() -> Result<()> {
     let target_pool = target_cfg
         .create_pool(Some(Runtime::Tokio1), NoTls)
         .unwrap();
-    let target_postgres_operator = PostgresOperatorImpl::new(target_pool.clone());
+    let target_postgres_operator = PostgresOperatorImpl::builder()
+        .pool(target_pool.clone())
+        .build();
 
     // Create an S3 client
     info!("{}", "Creating S3 client".bold().green());

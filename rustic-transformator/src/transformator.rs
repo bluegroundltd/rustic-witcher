@@ -114,7 +114,7 @@ pub trait Transformator: Send + Sync {
 
         vec![TransformatorOutput {
             column_name: column_name.to_string(),
-            series: Series::new(column_name, series),
+            series: Series::new(column_name.into(), series),
         }]
     }
 }

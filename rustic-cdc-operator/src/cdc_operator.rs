@@ -153,7 +153,7 @@ impl CDCOperator {
                     let get_table_columns_start = Instant::now();
                     let source_table_columns: indexmap::IndexMap<String, String> =
                         source_postgres_operator
-                            .get_table_columns(payload.schema_name.as_str(), table.as_str())
+                            .get_table_columns(payload.schema_name().as_str(), table.as_str())
                             .await
                             .unwrap();
                     let get_table_columns_duration =
@@ -169,7 +169,7 @@ impl CDCOperator {
                     info!("{}", "Getting primary key".bold().green());
                     let get_primary_key_start = Instant::now();
                     let primary_key_list = source_postgres_operator
-                        .get_primary_key(table.as_str(), payload.schema_name.as_str())
+                        .get_primary_key(table.as_str(), payload.schema_name().as_str())
                         .await
                         .unwrap();
                     let get_primary_key_duration =
@@ -181,33 +181,32 @@ impl CDCOperator {
                     info!("{}", "Getting list of Parquet files from S3".bold().green());
 
                     // Check if mode is DateAware and start_date is not None
-                    if payload.mode_is_date_aware() && payload.start_date.is_none() {
+                    if payload.mode_is_date_aware() && payload.start_date().is_none() {
                         panic!("start_date is required for DateAware mode");
                     }
 
                     let load_parquet_files_payload
                     = if payload.mode_is_date_aware(){
                             LoadParquetFilesPayload::DateAware {
-                                bucket_name: payload.bucket_name.clone(),
-                                s3_prefix: payload.key.clone(),
-                                database_name: payload.database_name.clone(),
-                                schema_name: payload.schema_name.clone(),
+                                bucket_name: payload.bucket_name().clone(),
+                                s3_prefix: payload.key().clone(),
+                                database_name: payload.database_name().clone(),
+                                schema_name: payload.schema_name().clone(),
                                 table_name: table.to_string(),
-                                start_date: payload.start_date.clone().unwrap(),
-                                stop_date: payload
-                                    .stop_date.clone(),
+                                start_date: payload.start_date().clone().unwrap(),
+                                stop_date: payload.stop_date().clone(),
                             }
                         }
                     else if payload.mode_is_full_load_only() {
                         LoadParquetFilesPayload::FullLoadOnly {
-                            bucket_name: payload.bucket_name.clone(),
-                            s3_prefix: payload.key.clone(),
-                            database_name: payload.database_name.clone(),
-                            schema_name: payload.schema_name.clone(),
+                            bucket_name: payload.bucket_name().clone(),
+                            s3_prefix: payload.key().clone(),
+                            database_name: payload.database_name().clone(),
+                            schema_name: payload.schema_name().clone(),
                             table_name: table.to_string(),
                         }
                     } else {
-                        LoadParquetFilesPayload::AbsolutePath(payload.key.clone())
+                        LoadParquetFilesPayload::AbsolutePath(payload.key().clone())
                     };
 
 
@@ -228,10 +227,10 @@ impl CDCOperator {
                     info!("{}", "Reading Parquet files from S3".bold().green());
                     for file in &parquet_files.unwrap() {
                         let create_dataframe_payload = CreateDataframePayload {
-                            bucket_name: payload.bucket_name.clone(),
+                            bucket_name: payload.bucket_name().clone(),
                             key: file.file_name.to_string(),
-                            database_name: payload.database_name.clone(),
-                            schema_name: payload.schema_name.clone(),
+                            database_name: payload.database_name().clone(),
+                            schema_name: payload.schema_name().clone(),
                             table_name: table.clone(),
                         };
 
@@ -259,13 +258,18 @@ impl CDCOperator {
                             // Check if the schema of the table is the same as the schema of the Parquet file
                             // in case of altered column names or dropped columns
                             let df_column_fields = current_df.get_columns();
+
+                            df_column_fields.iter().for_each(|field| {
+                                info!("Field: {:?}", field);
+                            });
+
                             let has_schema_diff = df_column_fields
                                 .iter()
                                 .filter(|field| {
-                                    field.name() != "Op"
-                                        && field.name() != "_dms_ingestion_timestamp"
+                                    field.name().as_str() != "Op"
+                                        && field.name().as_str() != "_dms_ingestion_timestamp"
                                 })
-                                .any(|field| !source_table_columns.contains_key(field.name()));
+                                .any(|field| !source_table_columns.contains_key(field.name().as_str()));
 
                             // Early exit if we detect a schema change. In order to mitigate that,
                             // we will trigger a new full load through DMS.
@@ -278,8 +282,8 @@ impl CDCOperator {
                             // Prepare for the insertion of the Dataframe in the target
                             // database.
                             let insert_dataframe_payload = InsertDataframePayload {
-                                database_name: payload.database_name.clone(),
-                                schema_name: payload.schema_name.clone(),
+                                database_name: payload.database_name().clone(),
+                                schema_name: payload.schema_name().clone(),
                                 table_name: table.clone(),
                             };
                             let insert_dataframe_start = Instant::now();
@@ -313,8 +317,8 @@ impl CDCOperator {
                             let primary_keys = primary_key_list.join(",");
 
                             let upsert_dataframe_payload = UpsertDataframePayload {
-                                database_name: payload.database_name.clone(),
-                                schema_name: payload.schema_name.clone(),
+                                database_name: payload.database_name().clone(),
+                                schema_name: payload.schema_name().clone(),
                                 table_name: table.clone(),
                                 primary_key: primary_keys.clone(),
                             };
