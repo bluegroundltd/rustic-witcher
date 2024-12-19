@@ -9,7 +9,8 @@ mod tests {
 
     #[test]
     fn test_fake_email_transformator() {
-        let df = DataFrame::new(vec![Series::new("a", &["foo-bar", "foo-qux"])]).unwrap();
+        let df =
+            DataFrame::new(vec![Series::new("a".into(), &["foo-bar", "foo-qux"]).into()]).unwrap();
         let transformator = FakeEmailTransformator::new("a".to_string(), false);
         let mut rng = StdRng::seed_from_u64(42);
 

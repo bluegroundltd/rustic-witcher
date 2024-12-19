@@ -25,7 +25,7 @@ impl Transformator for ReplaceTransformator {
             .map(|_| self.replacement_value.clone())
             .collect::<Vec<String>>();
 
-        let series = Series::new(&self.column_name, fake_values);
+        let series = Series::new((&self.column_name).into(), fake_values);
 
         vec![TransformatorOutput {
             column_name: self.column_name.clone(),
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_replace_transformator() {
-        let df = DataFrame::new(vec![Series::new("a", &[1, 2, 3, 4, 5])]).unwrap();
+        let df = DataFrame::new(vec![Series::new("a".into(), &[1, 2, 3, 4, 5]).into()]).unwrap();
         let transformator = ReplaceTransformator::new("a".to_string(), "test".to_string());
         let mut rng = StdRng::seed_from_u64(42);
 

@@ -39,7 +39,8 @@ impl Transformator for FakeMultiEmailTransformator {
             })
             .collect::<Vec<Option<String>>>();
 
-        let transformed_series = StringChunked::new(&self.column_name, column_values).into_series();
+        let transformed_series =
+            StringChunked::new((&self.column_name).into(), column_values).into_series();
 
         vec![TransformatorOutput {
             column_name: self.column_name.to_string(),
