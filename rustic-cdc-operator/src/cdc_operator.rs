@@ -185,19 +185,17 @@ impl CDCOperator {
                         panic!("start_date is required for DateAware mode");
                     }
 
-                    let load_parquet_files_payload
-                    = if payload.mode_is_date_aware(){
-                            LoadParquetFilesPayload::DateAware {
-                                bucket_name: payload.bucket_name().clone(),
-                                s3_prefix: payload.key().clone(),
-                                database_name: payload.database_name().clone(),
-                                schema_name: payload.schema_name().clone(),
-                                table_name: table.to_string(),
-                                start_date: payload.start_date().clone().unwrap(),
-                                stop_date: payload.stop_date().clone(),
-                            }
+                    let load_parquet_files_payload = if payload.mode_is_date_aware() {
+                        LoadParquetFilesPayload::DateAware {
+                            bucket_name: payload.bucket_name().clone(),
+                            s3_prefix: payload.key().clone(),
+                            database_name: payload.database_name().clone(),
+                            schema_name: payload.schema_name().clone(),
+                            table_name: table.to_string(),
+                            start_date: payload.start_date().clone().unwrap(),
+                            stop_date: payload.stop_date().clone(),
                         }
-                    else if payload.mode_is_full_load_only() {
+                    } else if payload.mode_is_full_load_only() {
                         LoadParquetFilesPayload::FullLoadOnly {
                             bucket_name: payload.bucket_name().clone(),
                             s3_prefix: payload.key().clone(),
@@ -208,7 +206,6 @@ impl CDCOperator {
                     } else {
                         LoadParquetFilesPayload::AbsolutePath(payload.key().clone())
                     };
-
 
                     let get_parquet_files_start = Instant::now();
                     let parquet_files = s3_operator
