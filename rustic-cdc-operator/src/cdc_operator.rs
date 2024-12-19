@@ -266,8 +266,8 @@ impl CDCOperator {
                             let has_schema_diff = df_column_fields
                                 .iter()
                                 .filter(|field| {
-                                    field.name().as_str() != "Op"
-                                        && field.name().as_str() != "_dms_ingestion_timestamp"
+                                    field.name() != "Op"
+                                        && field.name() != "_dms_ingestion_timestamp"
                                 })
                                 .any(|field| !source_table_columns.contains_key(field.name().as_str()));
 
