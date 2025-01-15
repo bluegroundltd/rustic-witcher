@@ -256,10 +256,6 @@ impl CDCOperator {
                             // in case of altered column names or dropped columns
                             let df_column_fields = current_df.get_columns();
 
-                            df_column_fields.iter().for_each(|field| {
-                                info!("Field: {:?}", field);
-                            });
-
                             let has_schema_diff = df_column_fields
                                 .iter()
                                 .filter(|field| {
