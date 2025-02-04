@@ -95,8 +95,8 @@ pub trait Transformator: Send + Sync {
                         let value_seed = &mut SipHasher::from(value).into_rng();
                         let value_seed = generate_seed_from_sip_rng(value_seed);
                         let value_seed = &mut StdRng::from_seed(value_seed);
-                        let value_seed = combine_seeds(rng, value_seed);
-                        let rng = &mut StdRng::from_rng(value_seed).unwrap();
+                        let mut value_seed = combine_seeds(rng, value_seed);
+                        let rng = &mut StdRng::from_rng(&mut value_seed);
                         Some(generate_fake_value_with_rng(&faker_type, rng))
                     }
                     None if retain_if_empty => value.map(|value| value.to_string()),
