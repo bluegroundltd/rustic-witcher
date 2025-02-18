@@ -63,6 +63,14 @@ impl ResultValidator {
     /// result_validator.validate().await;
     /// ```
     pub async fn validate(&self) {
+        // Check if we will skip validations
+        let skip_validations = should_skip_validations();
+
+        if skip_validations {
+            info!("Skipping validations");
+            return;
+        }
+
         let client = self.target_db_pool.get().await.unwrap();
         let validations = &self.validations.validations;
 
@@ -133,4 +141,12 @@ impl ResultValidator {
             }
         }
     }
+}
+
+// Control if we will skip the validations
+fn should_skip_validations() -> bool {
+    std::env::var("SKIP_VALIDATIONS")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse()
+        .unwrap()
 }
