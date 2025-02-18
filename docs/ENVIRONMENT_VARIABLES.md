@@ -16,3 +16,4 @@ The following environment variables can be used to configure the behavior of the
 | S3_BUCKET_REGION | eu-west-1 | Region of Parquet files containing bucket |
 | UPLOAD_ANONYMIZED_FILES | false | Whether to upload anonymized files to S3 bucket |
 | ANONYMIZED_BUCKET | None | Name of the S3 bucket containing anonymized Parquet files |
+| SKIP_VALIDATIONS | false | Whether to skip validations after data export |
