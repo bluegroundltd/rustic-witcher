@@ -9,14 +9,21 @@ pub struct MongoDataImporter {
     pub mongo_uri: String,
     pub s3_path: String,
     pub database_name: String,
+    pub override_destination_database_name: String,
 }
 
 impl MongoDataImporter {
-    pub fn new(mongo_uri: String, s3_path: String, database_name: String) -> Self {
+    pub fn new(
+        mongo_uri: String,
+        s3_path: String,
+        database_name: String,
+        override_destination_database_name: String,
+    ) -> Self {
         Self {
             mongo_uri,
             s3_path,
             database_name,
+            override_destination_database_name,
         }
     }
 
@@ -67,7 +74,9 @@ impl MongoDataImporter {
 
         let s3_bucket_key = format!("{s3_bucket_key}/{s3_download_file}");
 
-        info!("Downloading file {s3_download_file} from S3 bucket: {s3_bucket_name}, key: {s3_bucket_key}");
+        info!(
+            "Downloading file {s3_download_file} from S3 bucket: {s3_bucket_name}, key: {s3_bucket_key}"
+        );
 
         Self::download_s3_file(
             s3_bucket_name,
@@ -110,22 +119,38 @@ impl MongoDataImporter {
     }
 
     async fn execute_mongo_restore(&self, mongo_data_folder: impl Into<String>) {
-        let ns_to = self
-            .mongo_uri
-            .split('/')
-            .last()
-            .unwrap()
-            .split('?')
-            .next()
-            .unwrap();
+        let ns_to = if !self.override_destination_database_name.is_empty() {
+            self.override_destination_database_name.to_string()
+        } else {
+            self.mongo_uri
+                .split('/')
+                .last()
+                .unwrap()
+                .split('?')
+                .next()
+                .unwrap()
+                .to_string()
+        };
+
         let dir = format!("{}/{}/", mongo_data_folder.into(), self.database_name);
+
+        info!("Restoring {dir} to {ns_to}");
+
+        let replace_from_database = format!("mongodb.net/{}", self.database_name);
+        let replace_to_database = format!("mongodb.net/{}", ns_to);
+
+        info!("Replacing {replace_from_database} with {replace_to_database}!");
+
+        let updated_mongo_uri = self
+            .mongo_uri
+            .replace(&replace_from_database, &replace_to_database);
 
         let mongo_restore_commands = [
             String::from("mongorestore"),
-            format!("--uri={}", self.mongo_uri),
+            format!("--uri={}", &updated_mongo_uri),
             format!("--dir={}", dir),
             format!("--nsFrom={}.*", self.database_name),
-            format!("--nsTo={ns_to}.*"),
+            format!("--nsTo={}.*", ns_to),
             String::from("--drop"),
             String::from("--gzip"),
         ];
