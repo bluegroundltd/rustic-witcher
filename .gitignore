@@ -19,3 +19,4 @@ script.sh
 *.gif
 data/
 *.tgz
+.vscode/
