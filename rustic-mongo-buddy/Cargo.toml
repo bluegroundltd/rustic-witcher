@@ -1,7 +1,7 @@
 [package]
 name = "rustic-mongo-buddy"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 aws-config.workspace = true
@@ -13,6 +13,6 @@ tracing-subscriber.workspace = true
 rustic-shell.workspace = true
 
 [[bin]]
-edition = "2021"
+edition = "2024"
 name = "rustic-mongo-buddy"
 path = "src/main.rs"

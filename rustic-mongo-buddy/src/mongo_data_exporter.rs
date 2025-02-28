@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use aws_config::BehaviorVersion;
-use aws_sdk_s3::{primitives::ByteStream, Client};
+use aws_sdk_s3::{Client, primitives::ByteStream};
 use rustic_shell::shell_command_executor::ShellCommandExecutor;
 use tracing::{error, info};
 

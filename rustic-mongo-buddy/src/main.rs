@@ -23,6 +23,8 @@ enum Commands {
         s3_path: String,
         #[arg(long, required = true)]
         database_name: String,
+        #[arg(long, required = false, default_value_t = String::from(""))]
+        override_destination_database_name: String,
     },
     Export {
         #[arg(long, required = true)]
@@ -46,14 +48,20 @@ async fn main() {
             mongo_uri,
             s3_path,
             database_name,
+            override_destination_database_name,
         } => {
             let mongo_host = mongo_uri.split('@').collect::<Vec<_>>()[1];
 
             info!(
-                "Importing data from {} to {} in {}",
+                "Downloading data from {} to {} in {}",
                 s3_path, mongo_host, database_name
             );
-            let mongo_data_importer = MongoDataImporter::new(mongo_uri, s3_path, database_name);
+            let mongo_data_importer = MongoDataImporter::new(
+                mongo_uri,
+                s3_path,
+                database_name,
+                override_destination_database_name,
+            );
             mongo_data_importer.import_data().await;
         }
         Commands::Export {
