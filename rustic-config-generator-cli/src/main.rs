@@ -134,6 +134,7 @@ fn main() -> Result<()> {
         table_name: table_name.clone(),
         anonymization_type: anonymization_config_table_type,
         keep_num_of_records: None,
+        filter_type: None,
     };
 
     // Drop table if it exists

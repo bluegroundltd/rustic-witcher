@@ -1,7 +1,10 @@
 use crate::config_structs::{
-    anonymization_config::AnonymizationConfig, table_type_struct::AnonymizationConfigTableType,
+    anonymization_config::AnonymizationConfig, filter_type_struct::FilterType,
+    table_type_struct::AnonymizationConfigTableType,
     transformation_type_struct::AnonymizationTransformationType,
 };
+
+use pretty_assertions::assert_eq;
 
 #[test]
 fn test_deserialize_config() {
@@ -78,6 +81,57 @@ fn test_deserialize_config_with_specific_fake_operation() {
     let table_config = config.fetch_table_config("table1");
 
     assert!(table_config.is_some());
+    assert!(matches!(
+        table_config.unwrap().anonymization_type,
+        AnonymizationConfigTableType::Single { .. }
+    ));
+
+    if let AnonymizationConfigTableType::Single { transformation } =
+        &table_config.unwrap().anonymization_type
+    {
+        assert_eq!(transformation, "fake_phone_transformation");
+    } else {
+        panic!("Expected Single type")
+    }
+}
+
+#[test]
+fn test_deserialize_config_with_specific_filter_type() {
+    let config = r#"
+        [[tables]]
+        table_name = "table1"
+        [tables.filter_type]
+        type = "Contains"
+        column = "column1"
+        value = "foo"
+        [tables.anonymization_type]
+        type = "Single"
+        transformation = "fake_phone_transformation"
+    "#;
+
+    let config: AnonymizationConfig = toml::from_str(config).unwrap();
+    assert_eq!(config.tables.len(), 1);
+    assert_eq!(config.tables[0].table_name, "table1");
+
+    let table_config = config.fetch_table_config("table1");
+
+    assert!(table_config.is_some());
+
+    dbg!(table_config);
+
+    let filter = &table_config.unwrap().filter_type;
+
+    if let Some(filter) = filter {
+        matches!(filter, FilterType::Contains { .. });
+        let FilterType::Contains { column, value } = filter else {
+            panic!("Expected Contains filter");
+        };
+        assert_eq!(column, "column1");
+        assert_eq!(value, "foo");
+    } else {
+        panic!("Expected filter");
+    }
+
     assert!(matches!(
         table_config.unwrap().anonymization_type,
         AnonymizationConfigTableType::Single { .. }
