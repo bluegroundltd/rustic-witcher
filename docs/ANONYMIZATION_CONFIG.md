@@ -103,3 +103,38 @@ In order to retain a value when it is empty, you can use the following configura
 retain_empty = true
 ...
 ```
+
+### Filter a table based on values
+
+1. Contains
+
+```toml
+[[tables]]
+table_name = "some_table"
+[tables.filter_type]
+type = "Contains"
+column = "a_column"
+value = "some_contained_value"
+```
+
+2. StartsWith
+
+```toml
+[[tables]]
+table_name = "some_table"
+[tables.filter_type]
+type = "StartsWith"
+column = "a_column"
+value = "starts_with_this_value"
+```
+
+2. EndsWith
+
+```toml
+[[tables]]
+table_name = "some_table"
+[tables.filter_type]
+type = "EndsWith"
+column = "a_column"
+value = "ends_with_this_value"
+```

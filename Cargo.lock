@@ -4633,6 +4633,7 @@ dependencies = [
 name = "rustic-anonymization-config"
 version = "0.1.0"
 dependencies = [
+ "pretty_assertions",
  "rustic-base-transformations",
  "rustic-bg-whole-table-transformator",
  "rustic-faker-transformations",

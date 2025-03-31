@@ -7,6 +7,7 @@ edition = "2021"
 tracing.workspace = true
 serde.workspace = true
 toml.workspace = true
+pretty_assertions.workspace = true
 rustic-transformator.workspace = true
 rustic-base-transformations.workspace = true
 rustic-faker-transformations.workspace = true

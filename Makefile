@@ -107,3 +107,7 @@ run_tests_bg:
 
 .PHONY: run_all_tests
 run_all_tests: run_tests_open_source run_tests_bg
+
+.PHONY: clippy_all
+clippy_all:
+	cargo clippy --all --all-targets --all-features -- -D warnings

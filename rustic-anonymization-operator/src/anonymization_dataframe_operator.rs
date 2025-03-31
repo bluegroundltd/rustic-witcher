@@ -6,6 +6,9 @@ use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client as S3Client;
 use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
+use polars::prelude::col;
+use polars::prelude::lit;
+use polars::prelude::IntoLazy;
 use polars::prelude::{DataFrame, ParquetWriter};
 use polars::{
     io::SerReader as _,
@@ -13,6 +16,7 @@ use polars::{
 };
 use rand::{rngs::StdRng, SeedableRng};
 use rustic_anonymization_config::config_structs::anonymization_config::AnonymizationConfig;
+use rustic_anonymization_config::config_structs::filter_type_struct::FilterType;
 use rustic_duration::beautify_duration;
 use rustic_transformator::transformator_type::TransformatorType;
 use rustic_whole_table_transformator::whole_table_transformator::WholeTableTransformator;
@@ -52,7 +56,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
             payload.database_name.as_str(),
             payload.schema_name.as_str(),
         );
-        let table = table_config.fetch_table_config(&payload.table_name);
+        let table_config = table_config.fetch_table_config(&payload.table_name);
 
         // Check if we are operating on the first load file.
         // If we do, we need to check if there is a [keep_num_of_records]
@@ -64,8 +68,8 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         // of rows in the `.parquet` file is not enough based on the
         // [keep_num_of_records] option.
         let is_first_load_file = payload.key.contains("LOAD00000001");
-        let has_num_of_records = match table {
-            Some(table) => table.keep_num_of_records.is_some(),
+        let has_num_of_records = match table_config {
+            Some(table_config) => table_config.keep_num_of_records.is_some(),
             None => false,
         };
 
@@ -111,9 +115,11 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         // we check for the [keep_num_of_records] option,
         // in order to avoid loading the full Dataframe in memory.
         let df = if record_reduction_is_enabled {
-            if let Some(table) = table {
+            if let Some(table_config) = table_config {
                 if is_first_load_file {
-                    let slice_size = table.keep_num_of_records.unwrap_or(df.num_rows().unwrap());
+                    let slice_size = table_config
+                        .keep_num_of_records
+                        .unwrap_or(df.num_rows().unwrap());
                     df.with_slice(Some((0, slice_size)))
                         .read_parallel(ParallelStrategy::Auto)
                         .finish()
@@ -134,10 +140,47 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
             table = &payload.table_name,
         );
 
+        // Filter [DataFrame] based on the filter type,
+        // if any was supplied.
+        let df_filter_start = Instant::now();
+        let df = match table_config {
+            Some(table_config) => {
+                if let Some(filter) = &table_config.filter_type {
+                    match filter {
+                        FilterType::Contains { column, value } => {
+                            let filter_expr = col(column.as_str())
+                                .str()
+                                .contains_literal(lit(value.as_str()));
+                            df.lazy().filter(filter_expr).collect()?
+                        }
+                        FilterType::StartsWith { column, value } => {
+                            let filter_expr =
+                                col(column.as_str()).str().starts_with(lit(value.as_str()));
+                            df.lazy().filter(filter_expr).collect()?
+                        }
+                        FilterType::EndsWith { column, value } => {
+                            let filter_expr =
+                                col(column.as_str()).str().ends_with(lit(value.as_str()));
+                            df.lazy().filter(filter_expr).collect()?
+                        }
+                        FilterType::NoFilter => df,
+                    }
+                } else {
+                    df
+                }
+            }
+            None => df,
+        };
+        let df_filter_duration = beautify_duration(df_filter_start.elapsed());
+        info!(
+            "{table} parquet file filtered! Time taken: {df_filter_duration}",
+            table = &payload.table_name,
+        );
+
         // If there are no `Transformator`s we can return the already
         // read Dataframe.
-        let transformators = if let Some(table) = table {
-            table.build_transformators(whole_table_transformator())
+        let transformators = if let Some(table_config) = table_config {
+            table_config.build_transformators(whole_table_transformator())
         } else {
             if should_upload_anonymized_files() {
                 copy_parquet_file_to_anonymized_bucket(
