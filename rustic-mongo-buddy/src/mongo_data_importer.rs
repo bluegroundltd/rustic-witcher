@@ -124,7 +124,7 @@ impl MongoDataImporter {
         } else {
             self.mongo_uri
                 .split('/')
-                .last()
+                .next_back()
                 .unwrap()
                 .split('?')
                 .next()

@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.85.0
+ARG RUST_VERSION=1.86.0
 ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-slim-bookworm"
 
 # Build the actual app
