@@ -28,7 +28,7 @@ impl MongoDataExporter {
     }
 
     pub async fn export_data(&self) {
-        let db_name_from_uri = self.mongo_uri.split('/').last().unwrap();
+        let db_name_from_uri = self.mongo_uri.split('/').next_back().unwrap();
         if db_name_from_uri != self.database_name {
             error!(
                 "Database name in URI {} does not match provided database name {}",
