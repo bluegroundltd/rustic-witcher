@@ -1,7 +1,8 @@
 [package]
 name = "rustic-anonymization-config"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+license = "MIT"
 
 [dependencies]
 tracing.workspace = true

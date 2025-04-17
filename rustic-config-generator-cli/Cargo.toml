@@ -1,7 +1,8 @@
 [package]
 name = "rustic-config-generator-cli"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+license = "MIT"
 
 [dependencies]
 cliclack.workspace = true
@@ -14,6 +15,6 @@ rustic-anonymization-config.workspace = true
 rustic-faker-types.workspace = true
 
 [[bin]]
-edition = "2021"
+edition = "2024"
 name = "rustic-config-generator-cli"
 path = "src/main.rs"

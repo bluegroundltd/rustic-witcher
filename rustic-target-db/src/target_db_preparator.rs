@@ -32,7 +32,10 @@ impl TargetDbPreparator {
             db_name = cdc_operator_snapshot_payload.database_name(),
             db_schema = cdc_operator_snapshot_payload.schema_name()
         );
-        env::set_var("PGAPPNAME", app_name);
+
+        unsafe {
+            env::set_var("PGAPPNAME", app_name);
+        }
 
         let dump_command = format!(
             "pg_dump --verbose --no-owner --no-privileges --schema-only --schema={schema_name} --dbname={db_name} --format=c -f {PG_DUMP_FILE_NAME}",
@@ -76,7 +79,10 @@ impl TargetDbPreparator {
             db_name = cdc_operator_snapshot_payload.database_name(),
             db_schema = cdc_operator_snapshot_payload.schema_name()
         );
-        env::set_var("PGAPPNAME", app_name);
+
+        unsafe {
+            env::set_var("PGAPPNAME", app_name);
+        }
 
         let restore_command = format!(
             "pg_restore --verbose --no-owner --no-privileges --dbname={db_name} {PG_DUMP_FILE_NAME}",
