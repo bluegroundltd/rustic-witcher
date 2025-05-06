@@ -2,19 +2,19 @@ use std::time::Instant;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client as S3Client;
+use aws_sdk_s3::primitives::ByteStream;
 use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
+use polars::prelude::IntoLazy;
 use polars::prelude::col;
 use polars::prelude::lit;
-use polars::prelude::IntoLazy;
 use polars::prelude::{DataFrame, ParquetWriter};
 use polars::{
     io::SerReader as _,
     prelude::{ParallelStrategy, ParquetReader},
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use rustic_anonymization_config::config_structs::anonymization_config::AnonymizationConfig;
 use rustic_anonymization_config::config_structs::filter_type_struct::FilterType;
 use rustic_duration::beautify_duration;

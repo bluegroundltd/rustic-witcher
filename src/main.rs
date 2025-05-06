@@ -16,8 +16,8 @@ use rustic_result_validator::validator::result_validator::ResultValidator;
 use rustic_target_db::prepare_db_config;
 use tracing::info;
 
-use deadpool_postgres::tokio_postgres::NoTls;
 use deadpool_postgres::Runtime;
+use deadpool_postgres::tokio_postgres::NoTls;
 
 use crate::execution_payload::ExecutionPayload;
 

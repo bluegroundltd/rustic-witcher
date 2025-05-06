@@ -1,7 +1,7 @@
 use aws_sdk_s3::Client as S3Client;
 use colored::Colorize;
 use core::panic;
-use deadpool_postgres::{tokio_postgres::NoTls, Pool, Runtime};
+use deadpool_postgres::{Pool, Runtime, tokio_postgres::NoTls};
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
 use dms_cdc_operator::{
     cdc::snapshot_payload::CDCOperatorSnapshotPayload,
@@ -345,9 +345,9 @@ impl CDCOperator {
             })
             .collect::<Vec<_>>();
 
-        use futures::stream::{self};
         use futures::FutureExt;
         use futures::StreamExt;
+        use futures::stream::{self};
 
         let stream = stream::iter(anonymized_tables)
             .map(|future| future.boxed())

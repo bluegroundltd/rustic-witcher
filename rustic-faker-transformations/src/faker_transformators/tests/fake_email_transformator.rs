@@ -4,13 +4,15 @@ mod tests {
     use crate::faker_transformators::FakeEmailTransformator;
     use polars::prelude::*;
     use pretty_assertions::assert_eq;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
     use rustic_transformator::transformator::Transformator;
 
     #[test]
     fn test_fake_email_transformator() {
-        let df =
-            DataFrame::new(vec![Series::new("a".into(), &["foo-bar", "foo-qux"]).into()]).unwrap();
+        let df = DataFrame::new(vec![
+            Series::new("a".into(), &["foo-bar", "foo-qux"]).into(),
+        ])
+        .unwrap();
         let transformator = FakeEmailTransformator::new("a".to_string(), false);
         let mut rng = StdRng::seed_from_u64(42);
 

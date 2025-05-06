@@ -3,6 +3,7 @@ use std::time::Instant;
 use crate::transformator_output::TransformatorOutput;
 use crate::transformator_type::TransformatorType;
 use fake::{
+    Fake,
     faker::{
         address::raw::{CityName, PostCode, StreetName, ZipCode},
         company::raw::CompanyName,
@@ -12,10 +13,9 @@ use fake::{
     },
     locales::EN,
     uuid::UUIDv4,
-    Fake,
 };
 use polars::prelude::*;
-use rand::{rngs::StdRng, RngCore as _, SeedableRng};
+use rand::{RngCore as _, SeedableRng, rngs::StdRng};
 use rand_seeder::{SipHasher, SipRng};
 use rustic_duration::beautify_duration;
 use rustic_faker_types::FakerType;

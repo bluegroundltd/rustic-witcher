@@ -1,5 +1,5 @@
-use aws_config::{default_provider::credentials::DefaultCredentialsChain, Region};
-use aws_sdk_s3::{config::StalledStreamProtectionConfig, Client as S3Client};
+use aws_config::{Region, default_provider::credentials::DefaultCredentialsChain};
+use aws_sdk_s3::{Client as S3Client, config::StalledStreamProtectionConfig};
 use std::env;
 
 const S3_AWS_REGION: &str = "eu-west-1";

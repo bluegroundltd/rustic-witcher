@@ -44,8 +44,8 @@ impl Transformator for ReplaceTransformator {
 mod tests {
 
     use super::*;
-    use rand::rngs::StdRng;
     use rand::SeedableRng;
+    use rand::rngs::StdRng;
 
     #[test]
     fn test_replace_transformator() {
@@ -58,11 +58,13 @@ mod tests {
         assert_eq!(transformed.len(), 1);
         assert_eq!(transformed[0].column_name, "a");
         assert_eq!(transformed[0].series.len(), 5);
-        assert!(transformed[0]
-            .series
-            .str()
-            .unwrap()
-            .into_iter()
-            .all(|x| x.is_some() && x.unwrap() == "test"));
+        assert!(
+            transformed[0]
+                .series
+                .str()
+                .unwrap()
+                .into_iter()
+                .all(|x| x.is_some() && x.unwrap() == "test")
+        );
     }
 }

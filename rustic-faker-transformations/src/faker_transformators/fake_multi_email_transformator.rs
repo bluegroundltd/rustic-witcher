@@ -3,7 +3,7 @@ use polars::prelude::*;
 use rand::rngs::StdRng;
 use rustic_transformator::transformator_type::TransformatorType;
 
-use fake::{faker::internet::raw::SafeEmail, locales::EN, Fake};
+use fake::{Fake, faker::internet::raw::SafeEmail, locales::EN};
 use rustic_transformator::transformator::Transformator;
 use rustic_transformator::transformator_output::TransformatorOutput;
 

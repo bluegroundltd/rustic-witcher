@@ -3,7 +3,7 @@ mod tests {
     use crate::faker_transformators::FakeLastNameTransformator;
     use polars::prelude::*;
     use pretty_assertions::assert_eq;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
     use rustic_transformator::transformator::Transformator;
 
     #[test]
