@@ -151,6 +151,7 @@ impl MongoDataImporter {
             format!("--dir={}", dir),
             format!("--nsFrom={}.*", self.database_name),
             format!("--nsTo={}.*", ns_to),
+            String::from("--compressors=snappy"),
             String::from("--drop"),
             String::from("--gzip"),
         ];

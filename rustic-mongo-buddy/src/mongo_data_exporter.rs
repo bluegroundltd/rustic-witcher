@@ -107,6 +107,7 @@ impl MongoDataExporter {
             String::from("mongodump"),
             format!("--uri={}", self.mongo_uri),
             format!("--out={local_output_folder}"),
+            String::from("--compressors=snappy"),
             String::from("--gzip"),
             String::from("--readPreference=secondary"),
         ];
