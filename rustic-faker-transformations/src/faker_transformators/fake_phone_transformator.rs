@@ -1,7 +1,7 @@
 use bon::Builder;
 use polars::prelude::*;
-use rand::rngs::StdRng;
 use rand::Rng;
+use rand::rngs::StdRng;
 use rustic_transformator::transformator::Transformator;
 use rustic_transformator::transformator_output::TransformatorOutput;
 use rustic_transformator::transformator_type::TransformatorType;
@@ -22,18 +22,21 @@ impl Transformator for FakePhoneTransformator {
             .map(|value| {
                 if let Some(value) = value {
                     if value.len() > 1 {
-                        let transformed: String = value.chars().map(|c| {
-                            if c.is_ascii_digit() {
-                                let original_digit = c.to_digit(10).unwrap();
-                                let mut new_digit = original_digit;
-                                while new_digit == original_digit {
-                                    new_digit = rng.random_range(0..10);
+                        let transformed: String = value
+                            .chars()
+                            .map(|c| {
+                                if c.is_ascii_digit() {
+                                    let original_digit = c.to_digit(10).unwrap();
+                                    let mut new_digit = original_digit;
+                                    while new_digit == original_digit {
+                                        new_digit = rng.random_range(0..10);
+                                    }
+                                    std::char::from_digit(new_digit, 10).unwrap()
+                                } else {
+                                    c
                                 }
-                                std::char::from_digit(new_digit, 10).unwrap()
-                            } else {
-                                c
-                            }
-                        }).collect();
+                            })
+                            .collect();
                         Some(transformed)
                     } else {
                         Some(value.to_string())

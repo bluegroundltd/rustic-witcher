@@ -65,9 +65,11 @@ impl AnonymizationConfigTable {
         retain_if_empty: bool,
     ) -> Box<dyn Transformator> {
         match operation_type_raw {
-            "fake_phone_transformation" => {
-                Box::new(FakePhoneTransformator::builder().column_name(column_name.to_string()).build())
-            }
+            "fake_phone_transformation" => Box::new(
+                FakePhoneTransformator::builder()
+                    .column_name(column_name.to_string())
+                    .build(),
+            ),
             "fake_firstname_transformation" => Box::new(FakeFirstnameTransformator::new(
                 column_name,
                 retain_if_empty,
