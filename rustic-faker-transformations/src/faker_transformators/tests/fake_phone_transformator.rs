@@ -1,16 +1,18 @@
 #[cfg(test)]
 mod tests {
 
-    use crate::faker_transformators::FakePhoneTransformator;
     use polars::prelude::*;
     use pretty_assertions::assert_eq;
     use rand::{SeedableRng, rngs::StdRng};
     use rustic_transformator::transformator::Transformator;
 
+    use crate::faker_transformators::fake_phone_transformator::FakePhoneTransformator;
+
     #[test]
     fn test_fake_phone_transformator() {
-        let df = DataFrame::new(vec![Series::new("a".into(), &["foo-bar"]).into()]).unwrap();
-        let transformator = FakePhoneTransformator::new("a".to_string(), false);
+        let original_phone_number = "+44 20 7123 4567";
+        let df = DataFrame::new(vec![Series::new("a".into(), &[original_phone_number.to_string()]).into()]).unwrap();
+        let transformator = FakePhoneTransformator::builder().column_name("a".to_string()).build();
         let mut rng = StdRng::seed_from_u64(42);
 
         let transformed = transformator.transform(&df, &mut rng);
@@ -24,7 +26,7 @@ mod tests {
                 .str()
                 .unwrap()
                 .into_iter()
-                .all(|x| x.is_some() && x.unwrap() != "foo-bar"),
+                .all(|x| x.is_some() && x.unwrap() != original_phone_number),
             true
         );
     }

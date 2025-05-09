@@ -1,4 +1,6 @@
 pub mod fake_multi_email_transformator;
+pub mod fake_phone_transformator;
+
 #[cfg(test)]
 pub mod tests;
 
@@ -50,4 +52,3 @@ create_faker_transformator!(FakeEmailTransformator, FakerType::Email);
 create_faker_transformator!(FakeFirstnameTransformator, FakerType::FirstName);
 create_faker_transformator!(FakeLastNameTransformator, FakerType::LastName);
 create_faker_transformator!(FakeMd5Transformator, FakerType::Md5);
-create_faker_transformator!(FakePhoneTransformator, FakerType::PhoneNumber);

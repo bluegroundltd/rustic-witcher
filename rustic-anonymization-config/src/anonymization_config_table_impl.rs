@@ -4,10 +4,11 @@ use crate::config_structs::transformation_type_struct::AnonymizationTransformati
 
 use rustic_base_transformations::replace_transformator::ReplaceTransformator;
 use rustic_faker_transformations::faker_transformators::fake_multi_email_transformator::FakeMultiEmailTransformator;
+use rustic_faker_transformations::faker_transformators::fake_phone_transformator::FakePhoneTransformator;
 use rustic_faker_transformations::faker_transformators::{
     FakeAddressTransformator, FakeCompanyNameTransformator, FakeEmailTransformator,
     FakeFirstnameTransformator, FakeLastNameTransformator, FakeMd5Transformator,
-    FakeNameTransformator, FakePhoneTransformator,
+    FakeNameTransformator,
 };
 use rustic_transformator::transformator::Transformator;
 use rustic_whole_table_transformator::whole_table_transformator::WholeTableTransformator;
@@ -65,7 +66,7 @@ impl AnonymizationConfigTable {
     ) -> Box<dyn Transformator> {
         match operation_type_raw {
             "fake_phone_transformation" => {
-                Box::new(FakePhoneTransformator::new(column_name, retain_if_empty))
+                Box::new(FakePhoneTransformator::builder().column_name(column_name.to_string()).build())
             }
             "fake_firstname_transformation" => Box::new(FakeFirstnameTransformator::new(
                 column_name,
