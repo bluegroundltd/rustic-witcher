@@ -13,6 +13,9 @@ pub struct MongoDataExporter {
 }
 
 impl MongoDataExporter {
+    const ZSTD_ARCHIVE_EXTENSION: &str = "tar.zst";
+    const ZSTD_ARCHIVE_OPTIONS: &str = "-acf";
+
     pub fn new(
         mongo_uri: String,
         s3_path: String,
@@ -38,7 +41,8 @@ impl MongoDataExporter {
         }
 
         let local_output_folder = "/tmp/mongo-dump";
-        let archived_dump = "/tmp/mongo-dump.tar.gz";
+        let archived_dump = format!("/tmp/mongo-dump.{}", Self::ZSTD_ARCHIVE_EXTENSION);
+        let archived_dump = archived_dump.as_str();
 
         let mongo_host = self.mongo_uri.split('@').collect::<Vec<_>>()[1];
 
@@ -82,7 +86,11 @@ impl MongoDataExporter {
             .await
             .expect("Failed to read file");
 
-        let s3_bucket_key = format!("{s3_bucket_key}/mongo-{}.tar.gz", self.database_name);
+        let s3_bucket_key = format!(
+            "{s3_bucket_key}/mongo-{}.{}",
+            self.database_name,
+            Self::ZSTD_ARCHIVE_EXTENSION
+        );
 
         info!("Will upload file to S3 bucket {s3_bucket_name} with key {s3_bucket_key}");
 
@@ -97,7 +105,10 @@ impl MongoDataExporter {
     }
 
     async fn archive(archived_dump: &str, local_output_folder: &str) {
-        let archive_command = format!("tar -czf {archived_dump} -C {local_output_folder} .");
+        let archive_command = format!(
+            "tar {} {archived_dump} -C {local_output_folder} .",
+            Self::ZSTD_ARCHIVE_OPTIONS,
+        );
         ShellCommandExecutor::execute_cmd(archive_command).await;
         info!("Archived dump: {archived_dump}");
     }
