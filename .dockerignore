@@ -26,3 +26,4 @@ LICENSE
 README.md
 data/
 script.sh
+rust-toolchain.toml
