@@ -28,7 +28,7 @@ build_and_push_mongo_buddy_bg:
 	docker context use default
 	docker buildx build \
 	-t $(ECR_REGISTRY)/bluegroundltd/rustic-mongo-buddy:$(RUSTIC_MONGO_BUDDY_DOCKER_IMAGE_TAG) \
-	-f Dockerfile.rustic-mongo-buddy . \
+	-f rustic-mongo-buddy/Dockerfile . \
 	--push \
 	--cache-from $(ECR_REGISTRY)/bluegroundltd/rustic-mongo-buddy:master
 
