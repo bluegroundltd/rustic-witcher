@@ -13,6 +13,9 @@ pub struct MongoDataImporter {
 }
 
 impl MongoDataImporter {
+    const ZSTD_UNARCHIVE_EXTENSION: &str = "tar.zst";
+    const ZSTD_UNARCHIVE_OPTIONS: &str = "-axf";
+
     pub fn new(
         mongo_uri: String,
         s3_path: String,
@@ -55,7 +58,11 @@ impl MongoDataImporter {
     }
 
     async fn download_dump_file(&self) -> String {
-        let s3_download_file = format!("mongo-{}.tar.gz", self.database_name);
+        let s3_download_file = format!(
+            "mongo-{}.{}",
+            self.database_name,
+            Self::ZSTD_UNARCHIVE_EXTENSION
+        );
         let local_dump_file_path = format!("/tmp/mongo-dump/{}", s3_download_file);
         let s3_path = Path::new(&self.s3_path);
         let s3_bucket_name = s3_path
@@ -111,7 +118,8 @@ impl MongoDataImporter {
         extracted_mongo_files_location: impl Into<String>,
     ) {
         let untar_command = format!(
-            "tar -xf {compressed_mongo_dataset} -C {}",
+            "tar {} {compressed_mongo_dataset} -C {}",
+            Self::ZSTD_UNARCHIVE_OPTIONS,
             extracted_mongo_files_location.into()
         );
 
