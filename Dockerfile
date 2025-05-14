@@ -4,7 +4,7 @@ ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-slim-bookworm
 # Build the actual app
 FROM $IMAGE_NAME AS builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y libssl-dev pkg-config
+RUN apt-get update && apt-get install -yqq libssl-dev pkg-config
 
 COPY . .
 # Needs to be set during build time (intentionally does not have a default)
@@ -27,12 +27,11 @@ WORKDIR /app
 
 ARG POSTGRES_CLIENT_VERSION="postgresql-client"
 
-RUN apt update && apt install -y curl ca-certificates \
+RUN apt update && apt install -yqq curl ca-certificates \
     && install -d /usr/share/postgresql-common/pgdg \
     && curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-    && sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-
-RUN apt-get update && apt-get install -y $POSTGRES_CLIENT_VERSION
+    && sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
+    && apt-get update && apt-get install -yqq $POSTGRES_CLIENT_VERSION
 
 COPY --from=builder /bin/rustic/rustic-witcher /usr/local/bin/rustic-witcher
 COPY --from=builder /app/scripts /app/scripts
