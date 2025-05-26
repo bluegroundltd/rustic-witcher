@@ -62,6 +62,40 @@ impl TargetDbPreparator {
             .drop_schema(cdc_operator_snapshot_payload.schema_name().as_str())
             .await
             .expect("Failed to drop schema");
+
+        let should_create_extensions = should_create_extensions_in_schema();
+
+        info!("Should create extensions: {}", should_create_extensions);
+
+        if !should_create_extensions {
+            return;
+        }
+
+        let required_extensions = required_extensions();
+
+        info!("Required extensions: {:?}", required_extensions);
+        if required_extensions.is_empty() {
+            return;
+        }
+
+        target_postgres_operator
+            .create_schema(cdc_operator_snapshot_payload.schema_name().as_str())
+            .await
+            .expect("Failed to create schema");
+
+        for extension in required_extensions {
+            let extension_create_command = format!(
+                "CREATE EXTENSION IF NOT EXISTS {extension} WITH SCHEMA {} CASCADE;",
+                cdc_operator_snapshot_payload.schema_name()
+            );
+
+            target_postgres_operator
+                .run_sql_command(&extension_create_command)
+                .await
+                .expect("Failed to create extension: {extension}");
+
+            info!("Created Postgres extension: {}", extension);
+        }
     }
 
     /// Asynchronously restores a schema to the target PostgreSQL database.
@@ -267,4 +301,19 @@ fn superuser_password() -> String {
         .split('@')
         .collect::<Vec<_>>()[0]
         .to_string()
+}
+
+fn required_extensions() -> Vec<String> {
+    std::env::var("REQUIRED_PG_EXTENSIONS")
+        .unwrap_or_else(|_| String::from(""))
+        .split(',')
+        .map(|ext| ext.trim().to_string())
+        .collect()
+}
+
+fn should_create_extensions_in_schema() -> bool {
+    std::env::var("CREATE_EXTENSIONS_IN_SCHEMA")
+        .unwrap_or_else(|_| String::from("false"))
+        .parse()
+        .unwrap()
 }

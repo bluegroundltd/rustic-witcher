@@ -7,6 +7,7 @@ license = "MIT"
 [dependencies]
 polars.workspace = true
 rand.workspace = true
+rand_seeder.workspace = true
 fake.workspace = true
 bon.workspace = true
 rustic-transformator.workspace = true
