@@ -163,6 +163,61 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
                                 col(column.as_str()).str().ends_with(lit(value.as_str()));
                             df.lazy().filter(filter_expr).collect()?
                         }
+                        FilterType::StartsAndEndsWith {
+                            column,
+                            start_value,
+                            end_value,
+                        } => {
+                            let filter_expr = col(column.as_str())
+                                .str()
+                                .starts_with(lit(start_value.as_str()))
+                                .and(
+                                    col(column.as_str())
+                                        .str()
+                                        .ends_with(lit(end_value.as_str())),
+                                );
+                            df.lazy().filter(filter_expr).collect()?
+                        }
+                        FilterType::Equals { column, value } => {
+                            let filter_expr = col(column.as_str()).eq(lit(value.as_str()));
+                            df.lazy().filter(filter_expr).collect()?
+                        }
+                        FilterType::AnyOfInt { column, values } => {
+                            use polars::prelude::*;
+
+                            let excluded_df = df![
+                                "excluded" => values.clone()
+                            ]
+                            .unwrap();
+
+                            let excluded_as_series = excluded_df
+                                .column("excluded")
+                                .unwrap()
+                                .as_materialized_series()
+                                .clone();
+                            let filter_expr = col(column.as_str())
+                                .is_in(lit(excluded_as_series), true)
+                                .not();
+                            df.lazy().filter(filter_expr).collect()?
+                        }
+                        FilterType::AnyOfString { column, values } => {
+                            use polars::prelude::*;
+
+                            let excluded_df = df![
+                                "excluded" => values.clone()
+                            ]
+                            .unwrap();
+
+                            let excluded_as_series = excluded_df
+                                .column("excluded")
+                                .unwrap()
+                                .as_materialized_series()
+                                .clone();
+                            let filter_expr = col(column.as_str())
+                                .is_in(lit(excluded_as_series), true)
+                                .not();
+                            df.lazy().filter(filter_expr).collect()?
+                        }
                         FilterType::NoFilter => df,
                     }
                 } else {

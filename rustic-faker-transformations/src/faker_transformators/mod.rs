@@ -1,3 +1,4 @@
+pub mod fake_email_with_id_prefix_transformator;
 pub mod fake_multi_email_transformator;
 pub mod fake_phone_transformator;
 

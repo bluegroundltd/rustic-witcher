@@ -15,6 +15,5 @@ rustic-anonymization-config.workspace = true
 rustic-faker-types.workspace = true
 
 [[bin]]
-edition = "2024"
 name = "rustic-config-generator-cli"
 path = "src/main.rs"
