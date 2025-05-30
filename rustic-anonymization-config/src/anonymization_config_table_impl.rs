@@ -2,7 +2,9 @@ use crate::config_structs::table_struct::AnonymizationConfigTable;
 use crate::config_structs::table_type_struct::AnonymizationConfigTableType;
 use crate::config_structs::transformation_type_struct::AnonymizationTransformationType;
 
+use rustic_base_transformations::nulify_transformator::NullifyTransformator;
 use rustic_base_transformations::replace_transformator::ReplaceTransformator;
+use rustic_faker_transformations::faker_transformators::fake_email_with_id_prefix_transformator::FakeEmailWithIdPrefixTransformator;
 use rustic_faker_transformations::faker_transformators::fake_multi_email_transformator::FakeMultiEmailTransformator;
 use rustic_faker_transformations::faker_transformators::fake_phone_transformator::FakePhoneTransformator;
 use rustic_faker_transformations::faker_transformators::{
@@ -55,6 +57,9 @@ impl AnonymizationConfigTable {
             AnonymizationTransformationType::Custom { operation_type } => {
                 Self::match_transformator(column_name, operation_type.as_str(), retain_if_empty)
             }
+            AnonymizationTransformationType::Nullify => {
+                Box::new(NullifyTransformator::new(column_name))
+            }
         }
     }
 
@@ -98,6 +103,11 @@ impl AnonymizationConfigTable {
             "fake_md5_transformation" => {
                 Box::new(FakeMd5Transformator::new(column_name, retain_if_empty))
             }
+            "fake_email_with_id_prefix_transformation" => Box::new(
+                FakeEmailWithIdPrefixTransformator::builder()
+                    .column_name(column_name.to_string())
+                    .build(),
+            ),
             _ => panic!("Unknown operation type: {operation_type_raw}"),
         }
     }
