@@ -6,4 +6,5 @@ use serde::{Deserialize, Serialize};
 pub enum AnonymizationTransformationType {
     Replace { replacement_value: String },
     Custom { operation_type: String },
+    Nullify,
 }

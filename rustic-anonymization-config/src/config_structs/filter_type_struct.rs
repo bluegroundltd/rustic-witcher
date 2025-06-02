@@ -16,6 +16,24 @@ pub enum FilterType {
         column: String,
         value: String,
     },
+    StartsAndEndsWith {
+        column: String,
+        start_value: String,
+        end_value: String,
+    },
+    Equals {
+        column: String,
+        value: String,
+    },
+    AnyOfInt {
+        column: String,
+        values: Vec<i32>,
+    },
+    AnyOfString {
+        column: String,
+        values: Vec<String>,
+    },
+    #[serde(other)]
     #[default]
     NoFilter,
 }
