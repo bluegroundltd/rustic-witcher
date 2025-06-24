@@ -4863,6 +4863,7 @@ dependencies = [
 name = "rustic-bg-whole-table-transformator"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "fake",
  "polars",
  "pretty_assertions",
