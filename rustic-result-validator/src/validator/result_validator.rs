@@ -110,8 +110,7 @@ impl ResultValidator {
 
                     if !all_equal {
                         panic!(
-                            "Validation failed! Not all rows had the expected value: {}",
-                            value
+                            "Validation failed! Not all rows had the expected value: {value}"
                         );
                     }
                 }
@@ -133,8 +132,7 @@ impl ResultValidator {
 
                     if !all_contain {
                         panic!(
-                            "Validation failed: Not all rows contained the expected value: {}",
-                            value
+                            "Validation failed: Not all rows contained the expected value: {value}"
                         );
                     }
                 }

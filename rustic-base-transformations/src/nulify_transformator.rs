@@ -27,7 +27,7 @@ impl Transformator for NullifyTransformator {
             DataType::String => Series::new(column_name.into(), vec![None::<String>; len]),
             DataType::Int32 => Series::new(column_name.into(), vec![None::<i32>; len]),
             DataType::Float64 => Series::new(column_name.into(), vec![None::<f64>; len]),
-            _ => panic!("Unsupported data type: {:?}", dtype),
+            _ => panic!("Unsupported data type: {dtype:?}"),
         };
 
         vec![TransformatorOutput {

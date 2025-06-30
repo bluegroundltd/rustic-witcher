@@ -22,7 +22,7 @@ impl AnonymizationConfig {
         let mut conf_file_path = PathBuf::new();
         conf_file_path.push(env::current_dir().unwrap());
         conf_file_path.push("configuration_data");
-        conf_file_path.push(format!("{}-{}-sync.toml", database_name, schema_name));
+        conf_file_path.push(format!("{database_name}-{schema_name}-sync.toml"));
 
         debug!("Configuration file path: {:?}", conf_file_path.as_os_str());
 
@@ -32,7 +32,7 @@ impl AnonymizationConfig {
             Ok(conf) => match toml::from_str(&conf) {
                 Ok(conf) => conf,
                 Err(e) => {
-                    panic!("Error parsing configuration file: {:?}", e);
+                    panic!("Error parsing configuration file: {e:?}");
                 }
             },
             Err(_) => AnonymizationConfig::default(),

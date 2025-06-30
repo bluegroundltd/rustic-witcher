@@ -63,7 +63,7 @@ impl MongoDataImporter {
             self.database_name,
             Self::ZSTD_UNARCHIVE_EXTENSION
         );
-        let local_dump_file_path = format!("/tmp/mongo-dump/{}", s3_download_file);
+        let local_dump_file_path = format!("/tmp/mongo-dump/{s3_download_file}");
         let s3_path = Path::new(&self.s3_path);
         let s3_bucket_name = s3_path
             .components()
@@ -145,7 +145,7 @@ impl MongoDataImporter {
         info!("Restoring {dir} to {ns_to}");
 
         let replace_from_database = format!("mongodb.net/{}", self.database_name);
-        let replace_to_database = format!("mongodb.net/{}", ns_to);
+        let replace_to_database = format!("mongodb.net/{ns_to}");
 
         info!("Replacing {replace_from_database} with {replace_to_database}!");
 
@@ -155,10 +155,10 @@ impl MongoDataImporter {
 
         let mongo_restore_commands = [
             String::from("mongorestore"),
-            format!("--uri={}", &updated_mongo_uri),
-            format!("--dir={}", dir),
+            format!("--uri={updated_mongo_uri}"),
+            format!("--dir={dir}"),
             format!("--nsFrom={}.*", self.database_name),
-            format!("--nsTo={}.*", ns_to),
+            format!("--nsTo={ns_to}.*"),
             String::from("--compressors=snappy"),
             String::from("--drop"),
             String::from("--gzip"),

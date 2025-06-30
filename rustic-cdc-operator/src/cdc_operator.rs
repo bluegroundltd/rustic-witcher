@@ -145,7 +145,7 @@ impl CDCOperator {
                     let start = Instant::now();
                     info!(
                         "{}",
-                        format!("Running for table: {}", table).bold().magenta()
+                        format!("Running for table: {table}").bold().magenta()
                     );
 
                     // Get the table columns

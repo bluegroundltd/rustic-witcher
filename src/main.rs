@@ -24,7 +24,7 @@ use crate::execution_payload::ExecutionPayload;
 mod execution_payload;
 
 fn included_tables_path_parser(path: &str) -> Result<String> {
-    Ok(format!("configuration_data/inclusions/{}", path))
+    Ok(format!("configuration_data/inclusions/{path}"))
 }
 
 #[derive(Parser)]

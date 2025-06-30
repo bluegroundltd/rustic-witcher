@@ -35,7 +35,7 @@ fn generate_fake_value_with_rng(faker: &FakerType, rng: &mut StdRng) -> String {
             let post_code = PostCode(EN).fake_with_rng::<String, _>(rng);
             let street_name = StreetName(EN).fake_with_rng::<String, _>(rng);
             let zip_code = ZipCode(EN).fake_with_rng::<String, _>(rng);
-            format!("{} {}, {}, {}", street_name, zip_code, city_name, post_code)
+            format!("{street_name} {zip_code} {city_name} {post_code}")
         }
         FakerType::Md5 => UUIDv4.fake(),
     }
@@ -55,7 +55,7 @@ fn generate_fake_value_without_rng(faker: &FakerType) -> String {
             let post_code = PostCode(EN).fake::<String>();
             let street_name = StreetName(EN).fake::<String>();
             let zip_code = ZipCode(EN).fake::<String>();
-            format!("{} {}, {}, {}", street_name, zip_code, city_name, post_code)
+            format!("{street_name} {zip_code} {city_name} {post_code}")
         }
         FakerType::Md5 => UUIDv4.fake(),
     }

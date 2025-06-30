@@ -42,7 +42,7 @@ impl ValidationConfigLoader {
             Ok(conf) => match toml::from_str(&conf) {
                 Ok(conf) => conf,
                 Err(e) => {
-                    panic!("Error parsing configuration file: {:?}", e);
+                    panic!("Error parsing configuration file: {e:?}");
                 }
             },
             Err(_) => Validations::default(),

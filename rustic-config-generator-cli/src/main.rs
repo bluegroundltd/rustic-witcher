@@ -94,7 +94,7 @@ fn main() -> Result<()> {
         Ok(conf) => match toml::from_str(&conf) {
             Ok(conf) => conf,
             Err(e) => {
-                panic!("Error parsing configuration file: {:?}", e);
+                panic!("Error parsing configuration file: {e:?}");
             }
         },
         Err(_) => AnonymizationConfig::default(),
@@ -173,7 +173,7 @@ fn build_custom_faker_type_selection() -> String {
     let items_for_faker = FakerType::iter()
         .map(|faker_type| {
             let value = faker_type.to_string();
-            let label = format!("{:?}", faker_type);
+            let label = format!("{faker_type:?}");
             (value, label, "")
         })
         .collect::<Vec<_>>();
