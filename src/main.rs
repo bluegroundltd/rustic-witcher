@@ -87,6 +87,10 @@ enum Commands {
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
+    let info = auto_allocator::get_allocator_info();
+    info!("✅ Using: {:?}", info.allocator_type);
+    info!("💡 {}", info.reason);
+
     let cli = Cli::parse();
     let (execution_payload, cdc_operator_payload) = match cli.command {
         Commands::Anonymize {

@@ -82,6 +82,7 @@ rustic-s3-config = { path = "rustic-s3-config" }
 rustic-whole-table-transformator = { path = "rustic-whole-table-transformator" }
 rustic-bg-whole-table-transformator = { path = "rustic-bg-whole-table-transformator" }
 rustic-result-validator = { path = "rustic-result-validator" }
+auto-allocator = "*"
 
 [dependencies]
 aws-config.workspace = true
@@ -105,6 +106,7 @@ futures.workspace = true
 dms-cdc-operator.workspace = true
 deadpool-postgres.workspace = true
 bon.workspace = true
+auto-allocator.workspace = true
 rustic-faker-types.workspace = true
 rustic-anonymization-config.workspace = true
 rustic-duration.workspace = true
