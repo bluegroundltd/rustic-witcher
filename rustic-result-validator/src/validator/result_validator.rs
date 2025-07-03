@@ -109,9 +109,7 @@ impl ResultValidator {
                         });
 
                     if !all_equal {
-                        panic!(
-                            "Validation failed! Not all rows had the expected value: {value}"
-                        );
+                        panic!("Validation failed! Not all rows had the expected value: {value}");
                     }
                 }
                 ValueCheckType::Contains { ref value } => {
