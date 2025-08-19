@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.88.0
+ARG RUST_VERSION=1.89.0
 ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-alpine"
 
 # Build the actual app
