@@ -34,7 +34,11 @@ impl ShellCommandExecutor {
         });
 
         while let Some(line) = reader.next_line().await.unwrap() {
-            info!("{line}");
+            if line.to_lowercase().contains("error") {
+                panic!("{line}");
+            } else {
+                info!("{line}");
+            }
         }
     }
 }
