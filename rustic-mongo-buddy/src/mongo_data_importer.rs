@@ -123,7 +123,7 @@ impl MongoDataImporter {
             extracted_mongo_files_location.into()
         );
 
-        ShellCommandExecutor::execute_cmd(&untar_command).await;
+        ShellCommandExecutor::execute_cmd(&untar_command, None).await;
     }
 
     async fn execute_mongo_restore(&self, mongo_data_folder: impl Into<String>) {
@@ -165,6 +165,6 @@ impl MongoDataImporter {
         ];
 
         let mongo_restore_command = mongo_restore_commands.join(" ");
-        ShellCommandExecutor::execute_cmd(&mongo_restore_command).await;
+        ShellCommandExecutor::execute_cmd(&mongo_restore_command, Some(true)).await;
     }
 }

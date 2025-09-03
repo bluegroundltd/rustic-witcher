@@ -109,7 +109,7 @@ impl MongoDataExporter {
             "tar {} {archived_dump} -C {local_output_folder} .",
             Self::ZSTD_ARCHIVE_OPTIONS,
         );
-        ShellCommandExecutor::execute_cmd(archive_command).await;
+        ShellCommandExecutor::execute_cmd(archive_command, None).await;
         info!("Archived dump: {archived_dump}");
     }
 
@@ -130,7 +130,7 @@ impl MongoDataExporter {
         );
 
         let mongo_dump_command = command_parts.join(" ");
-        ShellCommandExecutor::execute_cmd(&mongo_dump_command).await;
+        ShellCommandExecutor::execute_cmd(&mongo_dump_command, None).await;
         info!("Mongo dump finished!");
     }
 }

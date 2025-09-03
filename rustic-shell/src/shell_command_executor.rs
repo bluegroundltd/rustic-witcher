@@ -6,7 +6,8 @@ use tracing::info;
 pub struct ShellCommandExecutor;
 
 impl ShellCommandExecutor {
-    pub async fn execute_cmd(cmd_for_execution: impl AsRef<str>) {
+    pub async fn execute_cmd(cmd_for_execution: impl AsRef<str>, check_for_error: Option<bool>) {
+        let check_for_error = check_for_error.unwrap_or(false);
         let mut restore_cmd = tokio::process::Command::new("sh");
 
         restore_cmd.arg("-c");
@@ -34,7 +35,7 @@ impl ShellCommandExecutor {
         });
 
         while let Some(line) = reader.next_line().await.unwrap() {
-            if line.to_lowercase().contains("error") {
+            if check_for_error && line.to_lowercase().contains("error") {
                 panic!("{line}");
             } else {
                 info!("{line}");
