@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use aws_config::BehaviorVersion;
-use aws_sdk_s3::{Client, primitives::ByteStream};
+use aws_sdk_s3::{Client, primitives::ByteStream, primitives::SdkBody};
 use rustic_shell::shell_command_executor::ShellCommandExecutor;
 use tracing::{error, info};
 
@@ -82,9 +82,16 @@ impl MongoDataExporter {
 
         info!("Created S3 client!");
 
-        let file_stream = ByteStream::from_path(file_path)
-            .await
-            .expect("Failed to read file");
+        // Get file size for logging
+        let file_metadata = std::fs::metadata(file_path).expect("Failed to read file metadata");
+        let file_size = file_metadata.len();
+        let file_size_mb = file_size as f64 / (1024.0 * 1024.0);
+        let file_size_gb = file_size as f64 / (1024.0 * 1024.0 * 1024.0);
+
+        info!(
+            "File size: {} bytes ({:.2} MB, {:.2} GB)",
+            file_size, file_size_mb, file_size_gb
+        );
 
         let s3_bucket_key = format!(
             "{s3_bucket_key}/mongo-{}.{}",
@@ -94,14 +101,139 @@ impl MongoDataExporter {
 
         info!("Will upload file to S3 bucket {s3_bucket_name} with key {s3_bucket_key}");
 
-        client
-            .put_object()
-            .bucket(s3_bucket_name)
-            .key(s3_bucket_key)
-            .body(file_stream)
+        // Use multipart upload for files larger than 5GB
+        const MAX_SINGLE_UPLOAD_SIZE: u64 = 5 * 1024 * 1024 * 1024; // 5GB in bytes
+
+        if file_size > MAX_SINGLE_UPLOAD_SIZE {
+            info!("File size exceeds 5GB, using multipart upload");
+            self.upload_multipart_to_s3(
+                &client,
+                s3_bucket_name,
+                &s3_bucket_key,
+                file_path,
+                file_size,
+            )
+            .await;
+        } else {
+            info!("File size is within 5GB limit, using single upload");
+            let file_stream = ByteStream::from_path(file_path)
+                .await
+                .expect("Failed to read file");
+
+            client
+                .put_object()
+                .bucket(s3_bucket_name)
+                .key(s3_bucket_key)
+                .body(file_stream)
+                .send()
+                .await
+                .expect("Failed to upload file to S3");
+        }
+
+        info!("Successfully uploaded file to S3");
+    }
+
+    async fn upload_multipart_to_s3(
+        &self,
+        client: &Client,
+        bucket_name: &str,
+        key: &str,
+        file_path: &str,
+        file_size: u64,
+    ) {
+        // Initialize multipart upload
+        let create_multipart_upload_output = client
+            .create_multipart_upload()
+            .bucket(bucket_name)
+            .key(key)
             .send()
             .await
-            .expect("Failed to upload file to S3");
+            .expect("Failed to create multipart upload");
+
+        let upload_id = create_multipart_upload_output
+            .upload_id()
+            .expect("Upload ID not found")
+            .to_string();
+
+        info!("Created multipart upload with ID: {}", upload_id);
+
+        // Calculate part size (minimum 1GB, maximum 5GB per part)
+        const MIN_PART_SIZE: u64 = 1024 * 1024 * 1024; // 1GB
+        const MAX_PART_SIZE: u64 = 5 * 1024 * 1024 * 1024; // 5GB
+        let part_size = std::cmp::max(MIN_PART_SIZE, file_size / 10); // Aim for max 10 parts
+        let part_size = std::cmp::min(part_size, MAX_PART_SIZE);
+
+        let mut part_number = 1;
+        let mut uploaded_parts = Vec::new();
+        let mut file = tokio::fs::File::open(file_path)
+            .await
+            .expect("Failed to open file");
+
+        info!("Using part size: {} bytes", part_size);
+
+        // Read file in chunks and upload each part
+        loop {
+            let mut buffer = vec![0u8; part_size as usize];
+            let bytes_read = tokio::io::AsyncReadExt::read(&mut file, &mut buffer)
+                .await
+                .expect("Failed to read file");
+
+            if bytes_read == 0 {
+                break;
+            }
+
+            buffer.truncate(bytes_read);
+            let body = ByteStream::from(SdkBody::from(buffer));
+
+            info!("Uploading part {} ({} bytes)", part_number, bytes_read);
+
+            let upload_part_output = client
+                .upload_part()
+                .bucket(bucket_name)
+                .key(key)
+                .part_number(part_number)
+                .upload_id(&upload_id)
+                .body(body)
+                .send()
+                .await
+                .expect("Failed to upload part");
+
+            let etag = upload_part_output
+                .e_tag()
+                .expect("ETag not found")
+                .to_string();
+
+            uploaded_parts.push(
+                aws_sdk_s3::types::CompletedPart::builder()
+                    .part_number(part_number)
+                    .e_tag(etag)
+                    .build(),
+            );
+
+            part_number += 1;
+        }
+
+        // Complete multipart upload
+        info!(
+            "Completing multipart upload with {} parts",
+            uploaded_parts.len()
+        );
+
+        client
+            .complete_multipart_upload()
+            .bucket(bucket_name)
+            .key(key)
+            .upload_id(&upload_id)
+            .multipart_upload(
+                aws_sdk_s3::types::CompletedMultipartUpload::builder()
+                    .set_parts(Some(uploaded_parts))
+                    .build(),
+            )
+            .send()
+            .await
+            .expect("Failed to complete multipart upload");
+
+        info!("Multipart upload completed successfully");
     }
 
     async fn archive(archived_dump: &str, local_output_folder: &str) {
