@@ -1,0 +1,44 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "includePaths": [
+    ".github/**"
+  ],
+  "extends": [
+    "config:base"
+  ],
+  "timezone": "Europe/Athens",
+  "schedule": [
+    "before 10am on monday"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "actions/checkout",
+        "aws-actions/configure-aws-credentials"
+      ],
+      "groupName": null,
+      "pinDigests": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions",
+      "commitMessagePrefix": "chore:",
+      "commitMessageTopic": "GitHub Actions",
+      "semanticCommits": "enabled",
+      "automerge": false,
+      "pinDigests": true
+    }
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "labels": [
+    "dependencies"
+  ],
+  "assignees": [],
+  "reviewers": []
+}
