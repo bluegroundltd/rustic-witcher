@@ -10,6 +10,8 @@ pub struct MongoDataImporter {
     pub s3_path: String,
     pub database_name: String,
     pub override_destination_database_name: String,
+    pub num_parallel_collections: u32,
+    pub num_insertion_workers: u32,
 }
 
 impl MongoDataImporter {
@@ -21,12 +23,16 @@ impl MongoDataImporter {
         s3_path: String,
         database_name: String,
         override_destination_database_name: String,
+        num_parallel_collections: u32,
+        num_insertion_workers: u32,
     ) -> Self {
         Self {
             mongo_uri,
             s3_path,
             database_name,
             override_destination_database_name,
+            num_parallel_collections,
+            num_insertion_workers,
         }
     }
 
@@ -153,6 +159,11 @@ impl MongoDataImporter {
             .mongo_uri
             .replace(&replace_from_database, &replace_to_database);
 
+        info!(
+            "Using parallelism: numParallelCollections={}, numInsertionWorkersPerCollection={}",
+            self.num_parallel_collections, self.num_insertion_workers
+        );
+
         let mongo_restore_commands = [
             String::from("mongorestore"),
             format!("--uri={updated_mongo_uri}"),
@@ -162,6 +173,11 @@ impl MongoDataImporter {
             String::from("--compressors=snappy"),
             String::from("--drop"),
             String::from("--gzip"),
+            format!("--numParallelCollections={}", self.num_parallel_collections),
+            format!(
+                "--numInsertionWorkersPerCollection={}",
+                self.num_insertion_workers
+            ),
         ];
 
         let mongo_restore_command = mongo_restore_commands.join(" ");
