@@ -25,6 +25,12 @@ enum Commands {
         database_name: String,
         #[arg(long, required = false, default_value_t = String::from(""))]
         override_destination_database_name: String,
+        /// Number of collections to restore in parallel (default: 4)
+        #[arg(long, required = false, default_value_t = 4)]
+        num_parallel_collections: u32,
+        /// Number of insertion workers per collection (default: 1)
+        #[arg(long, required = false, default_value_t = 1)]
+        num_insertion_workers: u32,
     },
     Export {
         #[arg(long, required = true)]
@@ -49,6 +55,8 @@ async fn main() {
             s3_path,
             database_name,
             override_destination_database_name,
+            num_parallel_collections,
+            num_insertion_workers,
         } => {
             let mongo_host = mongo_uri.split('@').collect::<Vec<_>>()[1];
 
@@ -61,6 +69,8 @@ async fn main() {
                 s3_path,
                 database_name,
                 override_destination_database_name,
+                num_parallel_collections,
+                num_insertion_workers,
             );
             mongo_data_importer.import_data().await;
         }

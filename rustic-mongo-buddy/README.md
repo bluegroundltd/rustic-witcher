@@ -19,3 +19,5 @@ The following environment variables can be used to configure the behavior of the
 | S3_PATH | - | S3 Path for the storage of the exported dataset |
 | DATABASE | - | Database name to import |
 | DESTINATION_DATABASE | "" | Override the above database name on the destination cluster, if empty it will be ignored |
+| NUM_PARALLEL_COLLECTIONS | 4 | Number of collections to restore in parallel |
+| NUM_INSERTION_WORKERS | 1 | Number of insertion workers per collection |
