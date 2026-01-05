@@ -17,3 +17,5 @@ The following environment variables can be used to configure the behavior of the
 | UPLOAD_ANONYMIZED_FILES | false | Whether to upload anonymized files to S3 bucket |
 | ANONYMIZED_BUCKET | None | Name of the S3 bucket containing anonymized Parquet files |
 | SKIP_VALIDATIONS | false | Whether to skip validations after data export |
+| POST_IMPORT_SQL_EXECUTION | false | Whether to execute custom SQL queries after data import |
+| {DB_NAME}_{SCHEMA_NAME}_POST_IMPORT_SQL_QUERIES | "" | Semicolon-separated SQL queries to execute after import |

@@ -364,7 +364,7 @@ impl CDCOperator {
     /// # Arguments
     ///
     /// * `target_pool` - The database pool for the target database.
-    /// * `datab ase_name` - The name of the target database.
+    /// * `database_name` - The name of the target database.
     /// * `schema_name` - The name of the schema in the target database.
     /// * `application_users` - Any application users to be granted with permissions,
     ///   in the target database.
@@ -386,6 +386,11 @@ impl CDCOperator {
         // Grant permissions to application users
         target_db_finalizer
             .grant_permissions_to_application_users(database_name, schema_name, application_users)
+            .await;
+
+        // Execute custom post-import SQL queries if enabled
+        target_db_finalizer
+            .execute_post_import_sql(database_name, schema_name)
             .await;
     }
 }
