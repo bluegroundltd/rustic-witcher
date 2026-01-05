@@ -1,6 +1,7 @@
 use bon::Builder;
 use colored::Colorize;
 use deadpool_postgres::Pool;
+use std::env;
 use tracing::info;
 
 #[derive(Builder)]
@@ -90,4 +91,109 @@ impl TargetDBFinalizer {
             db_client.execute(command.as_str(), &[]).await.unwrap();
         }
     }
+
+    /// Executes post-import SQL queries if the flag is enabled.
+    /// The queries are loaded from the {DATABASE_NAME}_{SCHEMA_NAME}_POST_IMPORT_SQL_QUERIES environment variable.
+    /// Queries should be separated by semicolons.
+    pub async fn execute_post_import_sql(&self, database_name: &str, schema_name: &str) {
+        if !should_execute_post_import_sql() {
+            info!(
+                "{}",
+                "Post-import SQL execution is disabled, skipping..."
+                    .yellow()
+                    .bold()
+            );
+            return;
+        }
+
+        info!(
+            "{}",
+            "Post-import SQL execution is enabled, loading queries..."
+                .blue()
+                .bold()
+        );
+
+        let queries_str = post_import_sql_queries(database_name, schema_name);
+
+        if queries_str.trim().is_empty() {
+            info!(
+                "{}",
+                "No post-import SQL queries found, skipping..."
+                    .yellow()
+                    .bold()
+            );
+            return;
+        }
+
+        // Split queries by semicolon and filter out empty strings
+        let queries: Vec<&str> = queries_str
+            .split(';')
+            .map(|q| q.trim())
+            .filter(|q| !q.is_empty())
+            .collect();
+
+        info!(
+            "{}",
+            format!("Found {} post-import SQL queries to execute", queries.len())
+                .blue()
+                .bold()
+        );
+
+        let db_client = self.target_db_pool.get().await.unwrap();
+
+        for (index, query) in queries.iter().enumerate() {
+            info!(
+                "{}: [{}] {}",
+                "Executing post-import SQL query".green().bold(),
+                index + 1,
+                query
+            );
+
+            match db_client.execute(*query, &[]).await {
+                Ok(rows_affected) => {
+                    info!(
+                        "{}",
+                        format!(
+                            "Query {} executed successfully, {} rows affected",
+                            index + 1,
+                            rows_affected
+                        )
+                        .green()
+                        .bold()
+                    );
+                }
+                Err(e) => {
+                    panic!(
+                        "Failed to execute post-import SQL query {}: {} - Error: {:?}",
+                        index + 1,
+                        query,
+                        e
+                    );
+                }
+            }
+        }
+
+        info!(
+            "{}",
+            "Post-import SQL execution completed successfully"
+                .green()
+                .bold()
+        );
+    }
+}
+
+fn should_execute_post_import_sql() -> bool {
+    env::var("POST_IMPORT_SQL_EXECUTION")
+        .unwrap_or_else(|_| String::from("false"))
+        .parse()
+        .unwrap()
+}
+
+fn post_import_sql_queries(database_name: &str, schema_name: &str) -> String {
+    let env_var_name = format!(
+        "{}_{}_POST_IMPORT_SQL_QUERIES",
+        database_name.to_uppercase(),
+        schema_name.to_uppercase()
+    );
+    env::var(&env_var_name).unwrap_or_else(|_| String::from(""))
 }
