@@ -4,7 +4,7 @@ ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-slim-trixie"
 # Build the actual app
 FROM $IMAGE_NAME AS builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y gcc libffi-dev libssl-dev pkg-config
+RUN apt-get update && apt-get install -y gcc libffi-dev libssl-dev pkg-config zstd
 COPY . .
 RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
