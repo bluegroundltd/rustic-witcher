@@ -22,9 +22,9 @@ FROM $IMAGE_NAME AS runtime
 ARG MONGO_TOOLS_VERSION=100.14.0
 WORKDIR /app
 
-# Install mongodb-database-tools
+# Install mongodb-database-tools and zstd for compression
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates wget gnupg \
+    ca-certificates wget gnupg zstd \
     && wget -qO- https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" > /etc/apt/sources.list.d/mongodb.list \
     && apt-get update \
