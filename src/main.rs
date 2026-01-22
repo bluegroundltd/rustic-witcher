@@ -148,11 +148,12 @@ async fn main() -> Result<()> {
             );
 
             info!("Will target to: {target_postgres_url}!");
-            let target_postgres_url =
-                env::var(target_postgres_url).expect("Target Postgres URL could not be loaded");
+            let target_postgres_url_env =
+                env::var(&target_postgres_url).expect("Target Postgres URL could not be loaded");
+
             // Intentionally selecting `source_database_name` here as the target database name,
             // since they will be the same.
-            let target_postgres_url = format!("{target_postgres_url}/{source_database_name}");
+            let target_postgres_url = format!("{target_postgres_url_env}/{source_database_name}");
 
             let cdc_operator_payload = CDCOperatorPayload::builder()
                 .bucket_name(bucket_name)
@@ -234,11 +235,21 @@ async fn main() -> Result<()> {
     )
     .await;
 
+    // Extract app_owner from target_postgres_url (format: postgres://user:pass@host:port/db)
+    let app_owner = cdc_operator_payload
+        .target_postgres_url()
+        .strip_prefix("postgres://")
+        .and_then(|s| s.split(':').next())
+        .unwrap_or_else(|| {
+            panic!("Could not extract app_owner from target_postgres_url.");
+        });
+
     _ = rustic_cdc_operator::cdc_operator::CDCOperator::finalize_snapshot(
         target_pool.clone(),
         cdc_operator_payload.database_name().as_str(),
         cdc_operator_payload.schema_name(),
         execution_payload.target_application_users(),
+        app_owner,
     )
     .await;
 
