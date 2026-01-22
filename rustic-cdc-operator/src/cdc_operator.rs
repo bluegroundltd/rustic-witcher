@@ -368,11 +368,13 @@ impl CDCOperator {
     /// * `schema_name` - The name of the schema in the target database.
     /// * `application_users` - Any application users to be granted with permissions,
     ///   in the target database.
+    /// * `app_owner` - The database owner role (extracted from TARGET_POSTGRES_URL).
     pub async fn finalize_snapshot(
         target_pool: Pool,
         database_name: &str,
         schema_name: &str,
         application_users: Vec<String>,
+        app_owner: &str,
     ) {
         let target_db_finalizer = TargetDBFinalizer::builder()
             .target_db_pool(target_pool)
@@ -385,7 +387,12 @@ impl CDCOperator {
 
         // Grant permissions to application users
         target_db_finalizer
-            .grant_permissions_to_application_users(database_name, schema_name, application_users)
+            .grant_permissions_to_application_users(
+                database_name,
+                schema_name,
+                application_users,
+                app_owner,
+            )
             .await;
 
         // Execute custom post-import SQL queries if enabled

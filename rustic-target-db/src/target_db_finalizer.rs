@@ -64,21 +64,37 @@ impl TargetDBFinalizer {
         database_name: &str,
         schema_name: &str,
         application_users: Vec<String>,
+        app_owner: &str,
     ) {
         let grant_commands = application_users
             .iter()
             .flat_map(|user| {
-                vec![
+                let mut commands = vec![
                     format!("grant usage on schema {db_schema} to {user}", db_schema = schema_name),
                     format!("grant create on schema {db_schema} to {user}", db_schema = schema_name),
                     format!("grant select, update, delete, insert on all tables in schema {db_schema} to {user}", db_schema = schema_name),
                     format!("grant connect, temp on database {db_name} to {user}", db_name = database_name),
                     format!("grant execute on all functions in schema {db_schema} to {user}", db_schema = schema_name),
                     format!("grant usage, select, update on all sequences in schema {db_schema} to {user}", db_schema = schema_name),
-                    format!("alter default privileges in schema {db_schema} grant select, update, delete, insert on tables to {user}", db_schema = schema_name),
-                    format!("alter default privileges in schema {db_schema} grant execute on functions to {user}", db_schema = schema_name),
-                    format!("alter default privileges in schema {db_schema} grant usage, select on sequences to {user}", db_schema = schema_name),
-                ]
+                ];
+
+                // If this user is the app_owner, use simple default privileges for existing objects
+                // Otherwise, use FOR ROLE app_owner so that when app_owner creates new objects, this user gets permissions
+                if user == app_owner {
+                    commands.extend(vec![
+                        format!("alter default privileges in schema {db_schema} grant select, update, delete, insert on tables to {user}", db_schema = schema_name),
+                        format!("alter default privileges in schema {db_schema} grant execute on functions to {user}", db_schema = schema_name),
+                        format!("alter default privileges in schema {db_schema} grant usage, select on sequences to {user}", db_schema = schema_name),
+                    ]);
+                } else {
+                    commands.extend(vec![
+                        format!("alter default privileges for role {app_owner} in schema {db_schema} grant select, update, delete, insert on tables to {user}", app_owner = app_owner, db_schema = schema_name),
+                        format!("alter default privileges for role {app_owner} in schema {db_schema} grant execute on functions to {user}", app_owner = app_owner, db_schema = schema_name),
+                        format!("alter default privileges for role {app_owner} in schema {db_schema} grant usage, select on sequences to {user}", app_owner = app_owner, db_schema = schema_name),
+                    ]);
+                }
+
+                commands
             });
 
         let db_client = self.target_db_pool.get().await.unwrap();
