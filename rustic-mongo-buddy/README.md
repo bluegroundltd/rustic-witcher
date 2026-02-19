@@ -10,6 +10,7 @@ The following environment variables can be used to configure the behavior of the
 | S3_PATH | - | S3 Path for the storage of the exported dataset |
 | DATABASE | - | Database name to export |
 | EXCLUDE_COLLECTIONS | [] | A list of collections to be excluded from the export |
+| INCLUDE_COLLECTIONS | [] | A list of collections to be included in the export |
 
 ## Import
 

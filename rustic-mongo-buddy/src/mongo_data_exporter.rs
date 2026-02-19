@@ -10,6 +10,7 @@ pub struct MongoDataExporter {
     pub s3_path: String,
     pub database_name: String,
     pub exclude_collections: Vec<String>,
+    pub include_collections: Vec<String>,
 }
 
 impl MongoDataExporter {
@@ -21,12 +22,14 @@ impl MongoDataExporter {
         s3_path: String,
         database_name: String,
         exclude_collections: Vec<String>,
+        include_collections: Vec<String>,
     ) -> Self {
         Self {
             mongo_uri,
             s3_path,
             database_name,
             exclude_collections,
+            include_collections,
         }
     }
 
@@ -253,7 +256,15 @@ impl MongoDataExporter {
             String::from("--compressors=snappy"),
             String::from("--gzip"),
             String::from("--readPreference=secondary"),
+            format!("--db={}", self.database_name),
         ];
+
+        command_parts.extend(
+            self.include_collections
+                .iter()
+                .map(|collection| format!("--collection={collection}")),
+        );
+
 
         command_parts.extend(
             self.exclude_collections

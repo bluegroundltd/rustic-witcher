@@ -41,6 +41,8 @@ enum Commands {
         database_name: String,
         #[arg(long, value_delimiter = ',', num_args = 0.., required = false)]
         exclude_collections: Vec<String>,
+        #[arg(long, value_delimiter = ',', num_args = 0.., required = false)]
+        include_collections: Vec<String>,
     },
 }
 
@@ -79,6 +81,7 @@ async fn main() {
             s3_path,
             database_name,
             exclude_collections,
+            include_collections,
         } => {
             let mongo_host = mongo_uri.split('@').collect::<Vec<_>>()[1];
 
@@ -87,7 +90,7 @@ async fn main() {
                 mongo_host, s3_path, database_name, exclude_collections
             );
             let mongo_data_exporter =
-                MongoDataExporter::new(mongo_uri, s3_path, database_name, exclude_collections);
+                MongoDataExporter::new(mongo_uri, s3_path, database_name, exclude_collections, include_collections);
             mongo_data_exporter.export_data().await;
         }
     }
