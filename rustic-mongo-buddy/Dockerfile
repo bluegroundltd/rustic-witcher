@@ -23,11 +23,10 @@ ARG MONGO_TOOLS_VERSION=100.14.0
 WORKDIR /app
 
 # Install mongodb-database-tools and zstd for compression
+# Direct .deb download avoids the MongoDB APT repo, whose SHA1-signed key is
+# rejected by Debian Trixie (sqv policy changed 2026-02-01).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates wget gnupg zstd \
-    && wget -qO- https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" > /etc/apt/sources.list.d/mongodb.list \
-    && apt-get update \
+    ca-certificates wget zstd \
     && wget -q https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-arm64-${MONGO_TOOLS_VERSION}.deb \
     && dpkg -i mongodb-database-tools-ubuntu2204-arm64-${MONGO_TOOLS_VERSION}.deb || true \
     && apt-get install -f -y --no-install-recommends \
