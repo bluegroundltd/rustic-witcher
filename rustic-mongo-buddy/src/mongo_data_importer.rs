@@ -56,8 +56,13 @@ impl MongoDataImporter {
         let mongo_host = self.mongo_uri.split('@').collect::<Vec<_>>()[1];
 
         info!("Importing {extracted_mongo_files_location} to {mongo_host}");
-        self.execute_mongo_restore(extracted_mongo_files_location)
-            .await;
+        if let Err(e) = self
+            .execute_mongo_restore(extracted_mongo_files_location)
+            .await
+        {
+            error!("mongorestore failed: {e}");
+            return;
+        }
 
         info!("Deleting tar file {compressed_mongo_dataset}");
         std::fs::remove_file(compressed_mongo_dataset).expect("Failed to remove tar file");
@@ -129,10 +134,15 @@ impl MongoDataImporter {
             extracted_mongo_files_location.into()
         );
 
-        ShellCommandExecutor::execute_cmd(&untar_command, None).await;
+        ShellCommandExecutor::execute_cmd(&untar_command, None)
+            .await
+            .expect("Failed to extract archive");
     }
 
-    async fn execute_mongo_restore(&self, mongo_data_folder: impl Into<String>) {
+    async fn execute_mongo_restore(
+        &self,
+        mongo_data_folder: impl Into<String>,
+    ) -> Result<(), String> {
         let ns_to = if !self.override_destination_database_name.is_empty() {
             self.override_destination_database_name.to_string()
         } else {
@@ -181,6 +191,6 @@ impl MongoDataImporter {
         ];
 
         let mongo_restore_command = mongo_restore_commands.join(" ");
-        ShellCommandExecutor::execute_cmd(&mongo_restore_command, Some(true)).await;
+        ShellCommandExecutor::execute_cmd(&mongo_restore_command, Some(true)).await
     }
 }

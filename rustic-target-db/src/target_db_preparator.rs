@@ -43,7 +43,9 @@ impl TargetDbPreparator {
             db_name = cdc_operator_snapshot_payload.source_postgres_url(),
         );
 
-        ShellCommandExecutor::execute_cmd(&dump_command, None).await
+        ShellCommandExecutor::execute_cmd(&dump_command, None)
+            .await
+            .expect("Failed to run pg_dump");
     }
 
     /// Asynchronously drops a schema from the target PostgreSQL database.
@@ -123,7 +125,9 @@ impl TargetDbPreparator {
             db_name = cdc_operator_snapshot_payload.target_postgres_url(),
         );
 
-        ShellCommandExecutor::execute_cmd(&restore_command, None).await;
+        ShellCommandExecutor::execute_cmd(&restore_command, None)
+            .await
+            .expect("Failed to run pg_restore");
 
         // Remove the pg_dump.sql file
         debug!("{}", "Removing {PG_DUMP_FILE_NAME} file".bold().green());
