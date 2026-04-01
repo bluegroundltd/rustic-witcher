@@ -121,13 +121,13 @@ impl TargetDbPreparator {
         }
 
         let restore_command = format!(
-            "pg_restore --verbose --no-owner --no-privileges --dbname={db_name} {PG_DUMP_FILE_NAME}",
+            "pg_restore --verbose --no-owner --no-privileges --clean --if-exists --dbname={db_name} {PG_DUMP_FILE_NAME}",
             db_name = cdc_operator_snapshot_payload.target_postgres_url(),
         );
 
-        ShellCommandExecutor::execute_cmd(&restore_command, None)
-            .await
-            .expect("Failed to run pg_restore");
+        if let Err(e) = ShellCommandExecutor::execute_cmd(&restore_command, None).await {
+            error!("pg_restore completed with errors: {e}");
+        }
 
         // Remove the pg_dump.sql file
         debug!("{}", "Removing {PG_DUMP_FILE_NAME} file".bold().green());

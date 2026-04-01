@@ -40,6 +40,7 @@ impl ShellCommandExecutor {
         let mut stderr_reader = BufReader::new(stderr).lines();
 
         let mut stderr_lines: Vec<String> = Vec::new();
+        let mut stderr_error_lines: Vec<String> = Vec::new();
 
         loop {
             tokio::select! {
@@ -58,7 +59,11 @@ impl ShellCommandExecutor {
                 }
                 line = stderr_reader.next_line() => {
                     if let Some(line) = line.unwrap() {
-                        error!("{line}");
+                        let lower = line.to_lowercase();
+                        if lower.contains("error") || lower.contains("warning") {
+                            stderr_error_lines.push(line.clone());
+                        }
+                        info!("{line}");
                         stderr_lines.push(line);
                     }
                 }
@@ -67,7 +72,11 @@ impl ShellCommandExecutor {
 
         // Drain remaining stderr after stdout closes
         while let Some(line) = stderr_reader.next_line().await.unwrap() {
-            error!("{line}");
+            let lower = line.to_lowercase();
+            if lower.contains("error") || lower.contains("warning") {
+                stderr_error_lines.push(line.clone());
+            }
+            info!("{line}");
             stderr_lines.push(line);
         }
 
@@ -77,10 +86,17 @@ impl ShellCommandExecutor {
             .expect("child process encountered an error");
 
         if !status.success() {
-            let msg = if stderr_lines.is_empty() {
-                format!("command exited with status {status}")
+            for line in &stderr_error_lines {
+                error!("{line}");
+            }
+            let msg = if stderr_error_lines.is_empty() {
+                if stderr_lines.is_empty() {
+                    format!("command exited with status {status}")
+                } else {
+                    stderr_lines.join("\n")
+                }
             } else {
-                stderr_lines.join("\n")
+                stderr_error_lines.join("\n")
             };
             return Err(msg);
         }
