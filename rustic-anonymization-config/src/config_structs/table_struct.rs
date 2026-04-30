@@ -9,4 +9,5 @@ pub struct AnonymizationConfigTable {
     pub anonymization_type: AnonymizationConfigTableType,
     pub keep_num_of_records: Option<usize>,
     pub filter_type: Option<FilterType>,
+    pub sanitize_null_bytes: Option<bool>,
 }
