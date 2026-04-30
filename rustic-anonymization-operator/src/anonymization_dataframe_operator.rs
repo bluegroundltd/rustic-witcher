@@ -8,7 +8,7 @@ use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
 use polars::prelude::IntoLazy;
 use polars::prelude::{DataFrame, ParquetWriter};
-use polars::prelude::{DataType, Expr, col, lit};
+use polars::prelude::{DataType, NamedFrom, Series, col, lit};
 use polars::{
     io::SerReader as _,
     prelude::{ParallelStrategy, ParquetReader},
@@ -326,26 +326,43 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
     }
 }
 
-// Strip embedded null bytes (\x00) from all String columns.
-// PostgreSQL rejects strings containing null bytes, but they can appear
-// in source data and survive the Parquet round-trip.
+// Nullify cells in all String columns that contain an embedded null byte (\x00).
+// Stripping \x00 is insufficient when the column holds JSON — the source data is
+// truncated at the null byte, leaving invalid JSON that PostgreSQL rejects.
+// Setting the whole cell to NULL is safer for corrupted values.
 fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
-    let exprs: Vec<Expr> = df
+    let string_col_names: Vec<String> = df
         .get_columns()
         .iter()
         .filter(|s| matches!(s.dtype(), DataType::String))
-        .map(|s| {
-            col(s.name().as_str())
-                .str()
-                .replace_all(lit("\x00"), lit(""), true)
-        })
+        .map(|s| s.name().to_string())
         .collect();
 
-    if exprs.is_empty() {
+    if string_col_names.is_empty() {
         return Ok(df);
     }
 
-    Ok(df.lazy().with_columns(exprs).collect()?)
+    let sanitized: Vec<Series> = string_col_names
+        .iter()
+        .map(|name| {
+            let values: Vec<Option<String>> = df
+                .column(name)
+                .unwrap()
+                .str()
+                .unwrap()
+                .into_iter()
+                .map(|opt_s| opt_s.filter(|s| !s.contains('\x00')).map(str::to_string))
+                .collect();
+            Series::new(name.as_str().into(), values)
+        })
+        .collect();
+
+    let mut df = df;
+    for series in sanitized {
+        df.with_column(series)?;
+    }
+
+    Ok(df)
 }
 
 // Copy Parquet file to anonymized S3 bucket.
