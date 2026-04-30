@@ -7,9 +7,8 @@ use aws_sdk_s3::primitives::ByteStream;
 use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
 use polars::prelude::IntoLazy;
-use polars::prelude::col;
-use polars::prelude::lit;
 use polars::prelude::{DataFrame, ParquetWriter};
+use polars::prelude::{DataType, Expr, col, lit};
 use polars::{
     io::SerReader as _,
     prelude::{ParallelStrategy, ParquetReader},
@@ -139,6 +138,16 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
             "{table} parquet file loaded! Time taken: {df_load_duration}",
             table = &payload.table_name,
         );
+
+        let df = if table_config
+            .and_then(|c| c.sanitize_null_bytes)
+            .unwrap_or(false)
+        {
+            info!("Sanitizing null bytes for table: {}", &payload.table_name);
+            sanitize_null_bytes(df)?
+        } else {
+            df
+        };
 
         // Filter [DataFrame] based on the filter type,
         // if any was supplied.
@@ -315,6 +324,28 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
 
         Ok(Some(df))
     }
+}
+
+// Strip embedded null bytes (\x00) from all String columns.
+// PostgreSQL rejects strings containing null bytes, but they can appear
+// in source data and survive the Parquet round-trip.
+fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
+    let exprs: Vec<Expr> = df
+        .get_columns()
+        .iter()
+        .filter(|s| matches!(s.dtype(), DataType::String))
+        .map(|s| {
+            col(s.name().as_str())
+                .str()
+                .replace_all(lit("\x00"), lit(""), true)
+        })
+        .collect();
+
+    if exprs.is_empty() {
+        return Ok(df);
+    }
+
+    Ok(df.lazy().with_columns(exprs).collect()?)
 }
 
 // Copy Parquet file to anonymized S3 bucket.

@@ -135,6 +135,7 @@ fn main() -> Result<()> {
         anonymization_type: anonymization_config_table_type,
         keep_num_of_records: None,
         filter_type: None,
+        sanitize_null_bytes: None,
     };
 
     // Drop table if it exists
