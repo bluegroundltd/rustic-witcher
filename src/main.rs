@@ -66,7 +66,7 @@ enum Commands {
             conflicts_with("included_tables"),
             group = "included_tables_group"
         )]
-        included_tables_from_file: String,
+        included_tables_from_file: Option<String>,
         /// List of tables to exclude for validatation against S3 files
         #[arg(long, value_delimiter = ',', num_args = 0.., required = false, conflicts_with("included_tables_group"))]
         excluded_tables: Vec<String>,
@@ -106,10 +106,10 @@ async fn main() -> Result<()> {
             max_connections,
             ..
         } => {
-            info!("Will include tables from file: {included_tables_from_file}");
-
             let included_tables = if included_tables.is_empty() {
-                std::fs::read_to_string(included_tables_from_file)
+                let path = included_tables_from_file.expect("--included-tables or --included-tables-from-file must be provided");
+                info!("Will include tables from file: {path}");
+                std::fs::read_to_string(path)
                     .expect("Failed to read file")
                     .lines()
                     .map(String::from)
