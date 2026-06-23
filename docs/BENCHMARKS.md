@@ -15,10 +15,10 @@ changed, so the speedup reflects work removed — not work skipped. Equivalence 
 
 | Hot path | OLD (median) | NEW (median) | Speedup | What changed |
 |---|---|---|---|---|
-| `sanitize_null_bytes` | 179 ms | 19 ms | **~9.4×** | row-by-row `Vec<Option<String>>` → vectorised `when/then/otherwise` |
-| Parquet read + selective filter | 17.0 ms | 12.4 ms | **~1.4×** | eager full read + post-filter → lazy `scan_parquet` + predicate pushdown |
-| Parquet read + `keep_num_of_records` | 16.1 ms | 4.0 ms | **~4.0×** | full read + `head(n)` → `scan_parquet` + slice/`n_rows` pushdown |
-| Config load (per 64 Parquet files) | 7.46 ms | 1.53 µs | **~4,900×** | disk read + TOML parse per file → process-wide memoized `Arc` |
+| `sanitize_null_bytes` | 194 ms | 18.8 ms | **~10.3×** | row-by-row `Vec<Option<String>>` → vectorised `when/then/otherwise` |
+| Parquet read + selective filter | 16.6 ms | 11.0 ms | **~1.5×** | eager full read + post-filter → lazy `scan_parquet` + predicate pushdown |
+| Parquet read + `keep_num_of_records` | 15.7 ms | 3.93 ms | **~4.0×** | full read + `head(n)` → `scan_parquet` + slice/`n_rows` pushdown |
+| Config load (per 64 Parquet files) | 7.42 ms | 1.55 µs | **~4,800×** | disk read + TOML parse per file → process-wide memoized `Arc` |
 
 Notes:
 - The read+filter speedup is conservative on local disk; against S3 the predicate also avoids
