@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn test_replace_transformator() {
-        let df = DataFrame::new(vec![
+        let df = DataFrame::new(5, vec![
             Series::new("a".into(), &["1", "2", "3", "4", "5"]).into(),
         ])
         .unwrap();
@@ -69,7 +69,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_none())
         );
     }

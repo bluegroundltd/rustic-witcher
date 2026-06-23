@@ -6,6 +6,7 @@ use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::primitives::ByteStream;
 use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
+use polars::polars_utils::pl_path::PlRefPath;
 use polars::prelude::{DataFrame, Expr, LazyFrame, ParquetWriter, ScanArgsParquet};
 use rand::{SeedableRng, rngs::StdRng};
 use rustic_anonymization_config::config_structs::anonymization_config::AnonymizationConfig;
@@ -47,7 +48,8 @@ impl<'a> AnonymizationDataFrameOperator<'a> {
             ..Default::default()
         };
 
-        let mut lazy = LazyFrame::scan_parquet(&path, args)
+        // polars 0.54 takes a `PlRefPath`; the `s3://…` scheme is detected from the string.
+        let mut lazy = LazyFrame::scan_parquet(PlRefPath::new(path.as_str()), args)
             .map_err(|e| anyhow::anyhow!("failed to scan parquet {path}: {e}"))?;
 
         if let Some(predicate) = predicate {
@@ -297,7 +299,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         let mut df = df;
         let df_get_column_names_start = Instant::now();
         let column_names = df
-            .get_columns()
+            .columns()
             .iter()
             .map(|s| s.name().to_string())
             .collect::<Vec<String>>();
@@ -337,7 +339,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
                     info!("Transforming column: {}", transformator_output.column_name);
 
                     let start = Instant::now();
-                    _ = df.with_column(transformator_output.series);
+                    _ = df.with_column(polars::prelude::Column::from(transformator_output.series));
 
                     info!(
                         "Column transformed! Time taken: {}",
@@ -369,7 +371,7 @@ fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
     use polars::prelude::*;
 
     let string_col_names: Vec<String> = df
-        .get_columns()
+        .columns()
         .iter()
         .filter(|s| matches!(s.dtype(), DataType::String))
         .map(|s| s.name().to_string())

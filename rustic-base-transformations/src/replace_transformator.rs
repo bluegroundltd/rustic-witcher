@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_replace_transformator() {
-        let df = DataFrame::new(vec![Series::new("a".into(), &[1, 2, 3, 4, 5]).into()]).unwrap();
+        let df = DataFrame::new(5, vec![Series::new("a".into(), &[1, 2, 3, 4, 5]).into()]).unwrap();
         let transformator = ReplaceTransformator::new("a".to_string(), "test".to_string());
         let mut rng = StdRng::seed_from_u64(42);
 
@@ -63,7 +63,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_some() && x.unwrap() == "test")
         );
     }

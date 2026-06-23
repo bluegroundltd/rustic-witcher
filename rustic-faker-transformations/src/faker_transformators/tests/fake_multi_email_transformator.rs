@@ -13,7 +13,7 @@ mod tests {
         let fake_multi_email_transformator = FakeMultiEmailTransformator::builder()
             .column_name("a".to_string())
             .build();
-        let df = DataFrame::new(vec![Series::new("a".into(), &["foo, bar, qux"]).into()]).unwrap();
+        let df = DataFrame::new(1, vec![Series::new("a".into(), &["foo, bar, qux"]).into()]).unwrap();
         let transformed = fake_multi_email_transformator.transform(&df, &mut rng);
 
         assert_eq!(transformed.len(), 1);
