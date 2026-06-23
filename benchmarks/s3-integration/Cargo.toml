@@ -1,0 +1,22 @@
+[package]
+name = "rustic-witcher-s3-integration"
+version = "0.1.0"
+edition = "2024"
+
+# Integration test for the rustic-witcher S3 scan_parquet path against a local
+# Floci (LocalStack-compatible) S3 endpoint. Reproduces the operator's cloud-options
+# + credential-provider + predicate/slice pushdown logic on polars 0.54.
+
+[dependencies]
+polars = { version = "0.54.4", features = [
+    "lazy",
+    "parquet",
+    "aws",
+    "strings",
+    "regex",
+    "is_in",
+] }
+aws-config = { version = "1.6", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.88", features = ["behavior-version-latest"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+anyhow = "1.0"

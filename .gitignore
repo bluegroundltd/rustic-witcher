@@ -20,3 +20,6 @@ script.sh
 data/
 *.tgz
 .vscode/
+
+# benchmark harness build artifacts
+benchmarks/*/target/

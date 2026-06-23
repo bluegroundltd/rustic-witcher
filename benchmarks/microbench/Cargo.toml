@@ -1,0 +1,32 @@
+[package]
+name = "rustic-witcher-microbench"
+version = "0.1.0"
+edition = "2024"
+
+# Standalone benchmark crate (NOT part of the rustic-witcher workspace).
+# It reproduces the exact OLD vs NEW bodies of the hot-path functions so we can
+# measure the optimizations in isolation, without needing S3 or Postgres.
+# Polars pinned to the same version/features the project uses.
+
+[dependencies]
+polars = { version = "0.54.4", features = [
+    "lazy",
+    "parquet",
+    "strings",
+    "regex",
+    "is_in",
+] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.9"
+rand = "0.9.1"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "hotpath"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = "thin"
