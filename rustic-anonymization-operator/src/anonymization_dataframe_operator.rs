@@ -8,7 +8,7 @@ use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
 use polars::prelude::IntoLazy;
 use polars::prelude::{DataFrame, ParquetWriter};
-use polars::prelude::{DataType, NamedFrom, Series, col, lit};
+use polars::prelude::{col, lit};
 use polars::{
     io::SerReader as _,
     prelude::{ParallelStrategy, ParquetReader},
@@ -51,11 +51,14 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         &self,
         payload: &CreateDataframePayload,
     ) -> Result<Option<DataFrame>> {
-        let table_config: AnonymizationConfig = AnonymizationConfig::load_config_for(
+        // `load_config_for` is now memoized process-wide, so this is a cheap
+        // Arc clone after the first call instead of a disk read + TOML parse
+        // on every Parquet file.
+        let config = AnonymizationConfig::load_config_for(
             payload.database_name.as_str(),
             payload.schema_name.as_str(),
         );
-        let table_config = table_config.fetch_table_config(&payload.table_name);
+        let table_config = config.fetch_table_config(&payload.table_name);
 
         // Check if we are operating on the first load file.
         // If we do, we need to check if there is a [keep_num_of_records]
@@ -293,22 +296,20 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
                 _ => true,
             })
             .for_each(|transformator| {
-                transformator
-                    .transform(&df, rng)
-                    .iter()
-                    .for_each(|transformator_output| {
-                        info!("Transforming column: {}", transformator_output.column_name);
+                // `transform` hands back owned `TransformatorOutput`s, so we move the
+                // produced `Series` straight into the DataFrame instead of cloning it.
+                // `with_column` replaces the existing column of the same name in place.
+                for transformator_output in transformator.transform(&df, rng) {
+                    info!("Transforming column: {}", transformator_output.column_name);
 
-                        let start = Instant::now();
-                        _ = df.apply(transformator_output.column_name.as_str(), |_| {
-                            transformator_output.series.clone()
-                        });
+                    let start = Instant::now();
+                    _ = df.with_column(transformator_output.series);
 
-                        info!(
-                            "Column transformed! Time taken: {}",
-                            beautify_duration(start.elapsed())
-                        );
-                    });
+                    info!(
+                        "Column transformed! Time taken: {}",
+                        beautify_duration(start.elapsed())
+                    );
+                }
             });
         info!(
             "Anonymization done! Time taken: {}",
@@ -331,6 +332,8 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
 // truncated at the null byte, leaving invalid JSON that PostgreSQL rejects.
 // Setting the whole cell to NULL is safer for corrupted values.
 fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
+    use polars::prelude::*;
+
     let string_col_names: Vec<String> = df
         .get_columns()
         .iter()
@@ -342,27 +345,21 @@ fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
         return Ok(df);
     }
 
-    let sanitized: Vec<Series> = string_col_names
+    // Vectorised, columnar replacement: any String cell that contains an embedded
+    // null byte is set to NULL. This stays entirely inside Polars' expression
+    // engine — no per-row `Vec<Option<String>>` materialisation or per-cell heap
+    // allocation — and the engine parallelises the columns for us.
+    let exprs: Vec<Expr> = string_col_names
         .iter()
         .map(|name| {
-            let values: Vec<Option<String>> = df
-                .column(name)
-                .unwrap()
-                .str()
-                .unwrap()
-                .into_iter()
-                .map(|opt_s| opt_s.filter(|s| !s.contains('\x00')).map(str::to_string))
-                .collect();
-            Series::new(name.as_str().into(), values)
+            when(col(name.as_str()).str().contains_literal(lit("\x00")))
+                .then(lit(NULL))
+                .otherwise(col(name.as_str()))
+                .alias(name.as_str())
         })
         .collect();
 
-    let mut df = df;
-    for series in sanitized {
-        df.with_column(series)?;
-    }
-
-    Ok(df)
+    Ok(df.lazy().with_columns(exprs).collect()?)
 }
 
 // Copy Parquet file to anonymized S3 bucket.
