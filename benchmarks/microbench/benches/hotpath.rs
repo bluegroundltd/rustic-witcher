@@ -2,7 +2,7 @@ use std::hint::black_box;
 use std::path::PathBuf;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use rw_bench::*;
+use rustic_witcher_microbench::*;
 
 const ROWS: usize = 2_000_000;
 
