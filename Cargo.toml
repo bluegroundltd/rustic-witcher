@@ -24,6 +24,8 @@ members = [
     "rustic-bg-whole-table-transformator",
     "rustic-result-validator",
 ]
+# Standalone benchmark/integration harnesses — own polars dep, not part of the build graph.
+exclude = ["benchmarks/microbench", "benchmarks/s3-integration"]
 
 [workspace.dependencies]
 aws-config = { version = "1.6", features = ["behavior-version-latest"] }
