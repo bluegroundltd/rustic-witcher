@@ -1,4 +1,7 @@
+use std::cmp;
 use std::path::Path;
+
+use tokio::io::AsyncReadExt;
 
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{Client, primitives::ByteStream, primitives::SdkBody};
@@ -168,8 +171,8 @@ impl MongoDataExporter {
         // Calculate part size (minimum 1 GiB, maximum 5 GiB per part)
         const MIN_PART_SIZE: u64 = MongoDataExporter::GIB;
         const MAX_PART_SIZE: u64 = MongoDataExporter::S3_PUT_OBJECT_MAX_SIZE;
-        let part_size = std::cmp::max(MIN_PART_SIZE, file_size / 10); // Aim for max 10 parts
-        let part_size = std::cmp::min(part_size, MAX_PART_SIZE);
+        let part_size = cmp::max(MIN_PART_SIZE, file_size / 10); // Aim for max 10 parts
+        let part_size = cmp::min(part_size, MAX_PART_SIZE);
 
         let mut part_number = 1;
         let mut uploaded_parts = Vec::new();
@@ -181,16 +184,16 @@ impl MongoDataExporter {
 
         // Read file in chunks and upload each part
         loop {
-            let mut buffer = vec![0u8; part_size as usize];
-            let bytes_read = tokio::io::AsyncReadExt::read(&mut file, &mut buffer)
+            let mut buffer = Vec::with_capacity(part_size as usize);
+            let bytes_read = (&mut file)
+                .take(part_size)
+                .read_to_end(&mut buffer)
                 .await
                 .expect("Failed to read file");
 
             if bytes_read == 0 {
                 break;
             }
-
-            buffer.truncate(bytes_read);
             let body = ByteStream::from(SdkBody::from(buffer));
 
             info!("Uploading part {} ({} bytes)", part_number, bytes_read);
