@@ -1,0 +1,89 @@
+name: S3 Integration Tests
+
+# Runs the Floci (local, LocalStack-compatible) S3 integration test that exercises
+# the lazy `scan_parquet` path end-to-end: predicate + slice pushdown over a real
+# S3 API, using the same credential-provider wiring as the operator.
+#
+# Uses a GitHub-hosted runner because the test needs Docker / docker-compose to
+# stand up Floci. The crate under benchmarks/s3-integration is standalone
+# (excluded from the workspace), so no private submodules or registry secrets are
+# required.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "benchmarks/s3-integration/**"
+      - "rustic-anonymization-operator/src/anonymization_dataframe_operator.rs"
+      - ".github/workflows/s3-integration-workflow.yaml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "benchmarks/s3-integration/**"
+      - "rustic-anonymization-operator/src/anonymization_dataframe_operator.rs"
+      - ".github/workflows/s3-integration-workflow.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_VERSION: 1.96.0
+  COMPOSE_DIR: benchmarks/s3-integration
+  # Bypass any runner-side HTTP(S) proxy for the local Floci endpoint so the
+  # aws-sdk / object_store requests reach localhost directly.
+  NO_PROXY: localhost,127.0.0.1
+
+jobs:
+  s3-integration:
+    name: S3 scan_parquet integration (Floci)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions-rust-lang/setup-rust-toolchain@9399c7bb15d4c7d47b27263d024f0a4978346ba4 # v1.11.0
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Start Floci (local S3)
+        working-directory: ${{ env.COMPOSE_DIR }}
+        run: docker compose up -d
+
+      - name: Wait for Floci S3 endpoint
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/ || true)
+            if echo "$code" | grep -qE "200|403|404|400"; then
+              echo "Floci S3 is up (HTTP $code) after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Floci S3 did not become ready in time"
+          docker compose -f "${COMPOSE_DIR}/docker-compose.yml" logs
+          exit 1
+
+      - name: Run S3 integration tests
+        working-directory: ${{ env.COMPOSE_DIR }}
+        run: cargo test -- --nocapture
+
+      - name: Dump Floci logs on failure
+        if: failure()
+        working-directory: ${{ env.COMPOSE_DIR }}
+        run: docker compose logs
+
+      - name: Tear down Floci
+        if: always()
+        working-directory: ${{ env.COMPOSE_DIR }}
+        run: docker compose down -v
