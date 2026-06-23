@@ -9,7 +9,7 @@ mod tests {
 
     #[test]
     fn test_fake_email_transformator() {
-        let df = DataFrame::new(vec![
+        let df = DataFrame::new(2, vec![
             Series::new("a".into(), &["foo-bar", "foo-qux"]).into(),
         ])
         .unwrap();
@@ -26,7 +26,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_some() && x.unwrap() != "foo-bar"),
             true
         );

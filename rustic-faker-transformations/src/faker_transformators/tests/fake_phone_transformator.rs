@@ -11,7 +11,7 @@ mod tests {
     #[test]
     fn test_fake_phone_transformator() {
         let original_phone_number = "+44 20 7123 4567";
-        let df = DataFrame::new(vec![
+        let df = DataFrame::new(1, vec![
             Series::new("a".into(), &[original_phone_number.to_string()]).into(),
         ])
         .unwrap();
@@ -30,7 +30,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_some() && x.unwrap() != original_phone_number),
             true
         );

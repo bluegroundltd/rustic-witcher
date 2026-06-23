@@ -254,7 +254,7 @@ impl CDCOperator {
                             info!("Processing LOAD file: {:?}", file);
                             // Check if the schema of the table is the same as the schema of the Parquet file
                             // in case of altered column names or dropped columns
-                            let df_column_fields = current_df.get_columns();
+                            let df_column_fields = current_df.columns();
 
                             let has_schema_diff = df_column_fields
                                 .iter()

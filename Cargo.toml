@@ -32,14 +32,13 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 colored = "3.0.0"
-polars = { version = "0.48.1", features = [
+polars = { version = "0.54.4", features = [
     "aws",
     "dtype-decimal",
     "json",
     "lazy",
-    "new_streaming",
     "parquet",
-    "streaming",
+    "regex",
     "strings",
     "timezones",
     "is_in",
@@ -131,3 +130,9 @@ path = "src/main.rs"
 [[bin]]
 name = "rustic-mongo-buddy"
 path = "rustic-mongo-buddy/src/main.rs"
+
+# Temporary: pull dms-cdc-operator from the polars-0.54 fork branch until the
+# upstream PR (nikoshet/rust-dms-cdc-operator#41) is merged & released. Required
+# because the DataframeOperator trait's DataFrame type pins our polars version.
+[patch.crates-io]
+dms-cdc-operator = { git = "https://github.com/ptournaris-ai/rust-dms-cdc-operator", branch = "bump/polars-0.54" }
