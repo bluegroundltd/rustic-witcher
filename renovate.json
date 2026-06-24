@@ -45,7 +45,7 @@
       "groupName": "GitHub Actions",
       "commitMessagePrefix": "chore:",
       "commitMessageTopic": "GitHub Actions",
-      "schedule": ["before 10am on monday"],
+      "schedule": ["before 10am on the first day of the month"],
       "pinDigests": true,
       "automerge": false
     },
@@ -60,19 +60,19 @@
       "automerge": false
     },
     {
-      "description": "Cargo workspace dependencies — weekly on Monday",
+      "description": "Cargo workspace dependencies — monthly",
       "matchManagers": ["cargo"],
       "groupName": "Cargo dependencies",
       "commitMessagePrefix": "chore:",
-      "schedule": ["before 10am on monday"],
+      "schedule": ["before 10am on the first day of the month"],
       "automerge": false
     },
     {
-      "description": "Rust toolchain and Docker base images — weekly on Monday",
+      "description": "Rust toolchain and Docker base images — monthly",
       "matchManagers": ["dockerfile", "custom.regex"],
       "groupName": "Rust toolchain and Docker images",
       "commitMessagePrefix": "chore:",
-      "schedule": ["before 10am on monday"],
+      "schedule": ["before 10am on the first day of the month"],
       "automerge": false
     }
   ]
