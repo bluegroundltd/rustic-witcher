@@ -1,0 +1,79 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "enabledManagers": ["github-actions", "cargo", "dockerfile", "custom.regex"],
+  "timezone": "Europe/Athens",
+  "semanticCommits": "enabled",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "labels": ["dependencies"],
+  "assignees": [],
+  "reviewers": [],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Rust toolchain version in Dockerfiles and rust-toolchain.toml",
+      "fileMatch": [
+        "^Dockerfile$",
+        "^rust-toolchain\\.toml$",
+        "^rustic-mongo-buddy/Dockerfile$"
+      ],
+      "matchStrings": [
+        "RUST_VERSION[=: \"]+(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+        "channel = \"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "depNameTemplate": "rust",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "MongoDB database tools version in rustic-mongo-buddy Dockerfile",
+      "fileMatch": ["^rustic-mongo-buddy/Dockerfile$"],
+      "matchStrings": ["MONGO_TOOLS_VERSION=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "mongodb-database-tools",
+      "packageNameTemplate": "mongodb/mongodb-database-tools",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "GitHub Actions — weekly on Monday",
+      "matchManagers": ["github-actions"],
+      "matchPackagePatterns": ["*"],
+      "groupName": "GitHub Actions",
+      "commitMessagePrefix": "chore:",
+      "commitMessageTopic": "GitHub Actions",
+      "schedule": ["before 10am on the first day of the month"],
+      "pinDigests": true,
+      "automerge": false
+    },
+    {
+      "description": "Internal gha-tooling actions — mutable @main tag, no SHA pinning (must be last to override global GHA rule)",
+      "matchManagers": ["github-actions"],
+      "matchPackagePatterns": ["^bluegroundltd/gha-tooling"],
+      "groupName": "gha-tooling internal actions",
+      "commitMessagePrefix": "chore:",
+      "commitMessageTopic": "gha-tooling",
+      "pinDigests": false,
+      "automerge": false
+    },
+    {
+      "description": "Cargo workspace dependencies — monthly",
+      "matchManagers": ["cargo"],
+      "groupName": "Cargo dependencies",
+      "commitMessagePrefix": "chore:",
+      "schedule": ["before 10am on the first day of the month"],
+      "automerge": false
+    },
+    {
+      "description": "Rust toolchain and Docker base images — monthly",
+      "matchManagers": ["dockerfile", "custom.regex"],
+      "groupName": "Rust toolchain and Docker images",
+      "commitMessagePrefix": "chore:",
+      "schedule": ["before 10am on the first day of the month"],
+      "automerge": false
+    }
+  ]
+}
