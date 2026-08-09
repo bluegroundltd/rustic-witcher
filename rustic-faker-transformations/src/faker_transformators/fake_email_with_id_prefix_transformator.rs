@@ -29,12 +29,12 @@ impl Transformator for FakeEmailWithIdPrefixTransformator {
             .unwrap()
             .str()
             .unwrap()
-            .into_iter();
+            .iter();
 
         let user_id = user_id_series.i32().unwrap();
 
         let transformed_values: Vec<Option<String>> = user_email_iter
-            .zip(user_id)
+            .zip(user_id.iter())
             .map(|(email, user_id)| {
                 let email = email.unwrap_or("");
                 let email_seed = &mut SipHasher::from(email).into_rng();

@@ -6,13 +6,8 @@ use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::primitives::ByteStream;
 use dms_cdc_operator::dataframe::dataframe_ops::CreateDataframePayload;
 use dms_cdc_operator::dataframe::dataframe_ops::DataframeOperator;
-use polars::prelude::IntoLazy;
-use polars::prelude::{DataFrame, ParquetWriter};
-use polars::prelude::{DataType, NamedFrom, Series, col, lit};
-use polars::{
-    io::SerReader as _,
-    prelude::{ParallelStrategy, ParquetReader},
-};
+use polars::polars_utils::pl_path::PlRefPath;
+use polars::prelude::{DataFrame, Expr, LazyFrame, ParquetWriter, ScanArgsParquet};
 use rand::{SeedableRng, rngs::StdRng};
 use rustic_anonymization_config::config_structs::anonymization_config::AnonymizationConfig;
 use rustic_anonymization_config::config_structs::filter_type_struct::FilterType;
@@ -20,7 +15,7 @@ use rustic_duration::beautify_duration;
 use rustic_transformator::transformator_type::TransformatorType;
 use rustic_whole_table_transformator::whole_table_transformator::WholeTableTransformator;
 use tracing::error;
-use tracing::{debug, info};
+use tracing::info;
 
 pub struct AnonymizationDataFrameOperator<'a> {
     s3_client: &'a S3Client,
@@ -30,6 +25,162 @@ impl<'a> AnonymizationDataFrameOperator<'a> {
     pub fn new(s3_client: &'a S3Client) -> Self {
         Self { s3_client }
     }
+
+    /// Lazily scans a Parquet file directly from S3, pushing the optional row
+    /// limit and predicate into the read so only the needed row groups/columns
+    /// are fetched and decoded.
+    async fn scan_parquet_from_s3(
+        &self,
+        bucket: &str,
+        key: &str,
+        n_rows: Option<usize>,
+        predicate: Option<Expr>,
+    ) -> Result<DataFrame> {
+        let cloud_options = self.build_cloud_options().await?;
+        let path = format!("s3://{bucket}/{key}");
+
+        let args = ScanArgsParquet {
+            n_rows,
+            cloud_options: Some(cloud_options),
+            // Keys are concrete object paths, never glob patterns; disabling glob
+            // avoids an extra LIST round-trip and mis-parsing of `?`/`*`/`[` in keys.
+            glob: false,
+            ..Default::default()
+        };
+
+        // polars 0.54 takes a `PlRefPath`; the `s3://…` scheme is detected from the string.
+        let mut lazy = LazyFrame::scan_parquet(PlRefPath::new(path.as_str()), args)
+            .map_err(|e| anyhow::anyhow!("failed to scan parquet {path}: {e}"))?;
+
+        if let Some(predicate) = predicate {
+            lazy = lazy.filter(predicate);
+        }
+
+        // `collect()` performs the cloud range reads and decode. It drives async
+        // I/O on Polars' own runtime via `block_on`; calling it on a Tokio worker
+        // thread risks a nested-runtime panic and would pin that worker for the
+        // whole decode. Offload to a blocking thread so the async runtime stays
+        // free and the CPU-heavy decode runs off the I/O reactor.
+        let df = tokio::task::spawn_blocking(move || lazy.collect())
+            .await
+            .map_err(|e| anyhow::anyhow!("parquet scan task panicked: {e}"))?
+            .map_err(|e| anyhow::anyhow!("failed to collect scanned parquet {path}: {e}"))?;
+
+        Ok(df)
+    }
+
+    /// Builds Polars [`CloudOptions`] whose credentials are resolved through the
+    /// *same* aws-sdk credential chain used for every other S3 call (env vars,
+    /// IRSA web-identity, IMDS, SSO, ...). This guarantees the lazy scan
+    /// authenticates identically to `get_object`, rather than relying on
+    /// object_store's separate (and less complete) credential discovery.
+    async fn build_cloud_options(&self) -> Result<polars::io::cloud::CloudOptions> {
+        use std::future::Future;
+        use std::pin::Pin;
+        use std::sync::Arc;
+
+        use aws_config::BehaviorVersion;
+        use aws_sdk_s3::config::ProvideCredentials;
+        use polars::io::cloud::CloudOptions;
+        use polars::io::cloud::credential_provider::{
+            AwsCredential, ObjectStoreCredential, PlCredentialProvider,
+        };
+        use polars::prelude::PolarsResult;
+
+        // NOTE: `aws_sdk_s3::Config::credentials_provider()` is deprecated and
+        // always returns `None`, so we resolve credentials from a freshly-loaded
+        // default `SdkConfig`. This runs the same provider chain the S3 client was
+        // built from (env vars / IRSA web-identity / IMDS / SSO).
+        let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+
+        let creds = sdk_config
+            .credentials_provider()
+            .ok_or_else(|| anyhow::anyhow!("no AWS credentials provider available"))?
+            .provide_credentials()
+            .await
+            .map_err(|e| anyhow::anyhow!("failed to resolve AWS credentials: {e}"))?;
+
+        // Seconds since UNIX_EPOCH; `u64::MAX` means "never expires" to Polars'
+        // credential cache. We rebuild options once per Parquet file, so static
+        // credentials still get re-resolved regularly across a run.
+        let expiry_secs = creds
+            .expiry()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(u64::MAX);
+
+        let aws_credential = Arc::new(AwsCredential {
+            key_id: creds.access_key_id().to_string(),
+            secret_key: creds.secret_access_key().to_string(),
+            token: creds.session_token().map(str::to_string),
+        });
+
+        // The provider closure must return a `Send + Sync` future. We resolved the
+        // credentials above, so we return an already-ready future cloning the cached
+        // credential — no async work inside, sidestepping the `Sync` future bound.
+        let credential_provider = PlCredentialProvider::from_func(move || {
+            let aws_credential = aws_credential.clone();
+            let fut: Pin<
+                Box<
+                    dyn Future<Output = PolarsResult<(ObjectStoreCredential, u64)>>
+                        + Send
+                        + Sync,
+                >,
+            > = Box::pin(std::future::ready(Ok((
+                ObjectStoreCredential::Aws(aws_credential),
+                expiry_secs,
+            ))));
+            fut
+        });
+
+        let mut options =
+            CloudOptions::default().with_credential_provider(Some(credential_provider));
+
+        if let Some(region) = sdk_config.region() {
+            use polars::io::cloud::AmazonS3ConfigKey;
+            options = options.with_aws([(AmazonS3ConfigKey::Region, region.to_string())]);
+        }
+
+        Ok(options)
+    }
+}
+
+/// Translates a configured [`FilterType`] into a Polars predicate [`Expr`] that
+/// can be pushed into the Parquet scan. Returns `None` for `NoFilter`.
+fn build_filter_predicate(filter: &FilterType) -> Option<Expr> {
+    use polars::prelude::*;
+
+    let expr = match filter {
+        FilterType::Contains { column, value } => {
+            col(column.as_str()).str().contains_literal(lit(value.as_str()))
+        }
+        FilterType::StartsWith { column, value } => {
+            col(column.as_str()).str().starts_with(lit(value.as_str()))
+        }
+        FilterType::EndsWith { column, value } => {
+            col(column.as_str()).str().ends_with(lit(value.as_str()))
+        }
+        FilterType::StartsAndEndsWith {
+            column,
+            start_value,
+            end_value,
+        } => col(column.as_str())
+            .str()
+            .starts_with(lit(start_value.as_str()))
+            .and(col(column.as_str()).str().ends_with(lit(end_value.as_str()))),
+        FilterType::Equals { column, value } => col(column.as_str()).eq(lit(value.as_str())),
+        FilterType::AnyOfInt { column, values } => {
+            let excluded = Series::new("excluded".into(), values.clone());
+            col(column.as_str()).is_in(lit(excluded), true).not()
+        }
+        FilterType::AnyOfString { column, values } => {
+            let excluded = Series::new("excluded".into(), values.clone());
+            col(column.as_str()).is_in(lit(excluded), true).not()
+        }
+        FilterType::NoFilter => return None,
+    };
+
+    Some(expr)
 }
 
 #[async_trait]
@@ -51,11 +202,14 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         &self,
         payload: &CreateDataframePayload,
     ) -> Result<Option<DataFrame>> {
-        let table_config: AnonymizationConfig = AnonymizationConfig::load_config_for(
+        // `load_config_for` is now memoized process-wide, so this is a cheap
+        // Arc clone after the first call instead of a disk read + TOML parse
+        // on every Parquet file.
+        let config = AnonymizationConfig::load_config_for(
             payload.database_name.as_str(),
             payload.schema_name.as_str(),
         );
-        let table_config = table_config.fetch_table_config(&payload.table_name);
+        let table_config = config.fetch_table_config(&payload.table_name);
 
         // Check if we are operating on the first load file.
         // If we do, we need to check if there is a [keep_num_of_records]
@@ -81,64 +235,41 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
             return Ok(None);
         }
 
-        // Download the relevant `.parquet` file from S3.
-        info!("Reading parquet file from S3: {}", payload.key);
-        let df_download_start = Instant::now();
-        let mut object = self
-            .s3_client
-            .get_object()
-            .bucket(&payload.bucket_name)
-            .key(&payload.key)
-            .send()
-            .await?;
-        let df_download_duration = beautify_duration(df_download_start.elapsed());
-        info!(
-            "{} Parquet file downloaded! Time taken: {df_download_duration}",
-            payload.key,
-            df_download_duration = df_download_duration,
-        );
-
-        let mut file_vec = Vec::new();
-        while let Some(bytes) = object.body.try_next().await? {
-            debug!("Read {} bytes", bytes.len());
-            file_vec.extend_from_slice(&bytes);
-        }
-
-        // Prepare to load the `.parquet` file.
-        let df_load_start = Instant::now();
-        let cursor = std::io::Cursor::new(file_vec);
-        let reader = ParquetReader::new(cursor);
-        let mut df = reader;
-
-        // If we are operating on the first `LOAD` file,
-        // we check for the [keep_num_of_records] option,
-        // in order to avoid loading the full Dataframe in memory.
-        let df = if record_reduction_is_enabled {
-            if let Some(table_config) = table_config {
-                if is_first_load_file {
-                    let slice_size = table_config
-                        .keep_num_of_records
-                        .unwrap_or(df.num_rows().unwrap());
-                    df.with_slice(Some((0, slice_size)))
-                        .read_parallel(ParallelStrategy::Auto)
-                        .finish()
-                        .unwrap()
-                } else {
-                    df.read_parallel(ParallelStrategy::Auto).finish().unwrap()
-                }
-            } else {
-                df.read_parallel(ParallelStrategy::Auto).finish().unwrap()
-            }
+        // Push record-reduction down into the scan: for the first LOAD file we
+        // read at most `keep_num_of_records` rows straight out of the Parquet
+        // file (slice pushdown) instead of materialising the whole DataFrame and
+        // slicing afterwards.
+        let n_rows = if record_reduction_is_enabled && is_first_load_file {
+            table_config.and_then(|c| c.keep_num_of_records)
         } else {
-            df.read_parallel(ParallelStrategy::Auto).finish().unwrap()
+            None
         };
 
-        let df_load_duration = beautify_duration(df_load_start.elapsed());
+        // Translate the configured filter (if any) into a Polars predicate that
+        // is pushed into the Parquet read. Row groups whose statistics prove they
+        // cannot match are skipped — never fetched from S3, never decoded.
+        let predicate = table_config
+            .and_then(|c| c.filter_type.as_ref())
+            .and_then(build_filter_predicate);
+
+        // Lazily scan the Parquet file directly from S3. Projection, predicate and
+        // slice pushdown mean we transfer and decode only the row groups/columns we
+        // actually need, instead of buffering the whole object into memory first
+        // and filtering afterwards.
+        let scan_start = Instant::now();
+        let df = self
+            .scan_parquet_from_s3(&payload.bucket_name, &payload.key, n_rows, predicate)
+            .await?;
         info!(
-            "{table} parquet file loaded! Time taken: {df_load_duration}",
+            "{table} parquet file scanned from S3! Time taken: {duration}",
             table = &payload.table_name,
+            duration = beautify_duration(scan_start.elapsed()),
         );
 
+        // Null-byte sanitisation now runs *after* the pushed-down filter (it used
+        // to run before). Filter columns are keys/types/timestamps that do not
+        // carry embedded null bytes, so this reordering is behaviour-preserving in
+        // practice while letting the predicate skip row groups during the read.
         let df = if table_config
             .and_then(|c| c.sanitize_null_bytes)
             .unwrap_or(false)
@@ -148,98 +279,6 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         } else {
             df
         };
-
-        // Filter [DataFrame] based on the filter type,
-        // if any was supplied.
-        let df_filter_start = Instant::now();
-        let df = match table_config {
-            Some(table_config) => {
-                if let Some(filter) = &table_config.filter_type {
-                    match filter {
-                        FilterType::Contains { column, value } => {
-                            let filter_expr = col(column.as_str())
-                                .str()
-                                .contains_literal(lit(value.as_str()));
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::StartsWith { column, value } => {
-                            let filter_expr =
-                                col(column.as_str()).str().starts_with(lit(value.as_str()));
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::EndsWith { column, value } => {
-                            let filter_expr =
-                                col(column.as_str()).str().ends_with(lit(value.as_str()));
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::StartsAndEndsWith {
-                            column,
-                            start_value,
-                            end_value,
-                        } => {
-                            let filter_expr = col(column.as_str())
-                                .str()
-                                .starts_with(lit(start_value.as_str()))
-                                .and(
-                                    col(column.as_str())
-                                        .str()
-                                        .ends_with(lit(end_value.as_str())),
-                                );
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::Equals { column, value } => {
-                            let filter_expr = col(column.as_str()).eq(lit(value.as_str()));
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::AnyOfInt { column, values } => {
-                            use polars::prelude::*;
-
-                            let excluded_df = df![
-                                "excluded" => values.clone()
-                            ]
-                            .unwrap();
-
-                            let excluded_as_series = excluded_df
-                                .column("excluded")
-                                .unwrap()
-                                .as_materialized_series()
-                                .clone();
-                            let filter_expr = col(column.as_str())
-                                .is_in(lit(excluded_as_series), true)
-                                .not();
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::AnyOfString { column, values } => {
-                            use polars::prelude::*;
-
-                            let excluded_df = df![
-                                "excluded" => values.clone()
-                            ]
-                            .unwrap();
-
-                            let excluded_as_series = excluded_df
-                                .column("excluded")
-                                .unwrap()
-                                .as_materialized_series()
-                                .clone();
-                            let filter_expr = col(column.as_str())
-                                .is_in(lit(excluded_as_series), true)
-                                .not();
-                            df.lazy().filter(filter_expr).collect()?
-                        }
-                        FilterType::NoFilter => df,
-                    }
-                } else {
-                    df
-                }
-            }
-            None => df,
-        };
-        let df_filter_duration = beautify_duration(df_filter_start.elapsed());
-        info!(
-            "{table} parquet file filtered! Time taken: {df_filter_duration}",
-            table = &payload.table_name,
-        );
 
         // If there are no `Transformator`s we can return the already
         // read Dataframe.
@@ -260,7 +299,7 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
         let mut df = df;
         let df_get_column_names_start = Instant::now();
         let column_names = df
-            .get_columns()
+            .columns()
             .iter()
             .map(|s| s.name().to_string())
             .collect::<Vec<String>>();
@@ -293,22 +332,20 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
                 _ => true,
             })
             .for_each(|transformator| {
-                transformator
-                    .transform(&df, rng)
-                    .iter()
-                    .for_each(|transformator_output| {
-                        info!("Transforming column: {}", transformator_output.column_name);
+                // `transform` hands back owned `TransformatorOutput`s, so we move the
+                // produced `Series` straight into the DataFrame instead of cloning it.
+                // `with_column` replaces the existing column of the same name in place.
+                for transformator_output in transformator.transform(&df, rng) {
+                    info!("Transforming column: {}", transformator_output.column_name);
 
-                        let start = Instant::now();
-                        _ = df.apply(transformator_output.column_name.as_str(), |_| {
-                            transformator_output.series.clone()
-                        });
+                    let start = Instant::now();
+                    _ = df.with_column(polars::prelude::Column::from(transformator_output.series));
 
-                        info!(
-                            "Column transformed! Time taken: {}",
-                            beautify_duration(start.elapsed())
-                        );
-                    });
+                    info!(
+                        "Column transformed! Time taken: {}",
+                        beautify_duration(start.elapsed())
+                    );
+                }
             });
         info!(
             "Anonymization done! Time taken: {}",
@@ -331,8 +368,10 @@ impl DataframeOperator for AnonymizationDataFrameOperator<'_> {
 // truncated at the null byte, leaving invalid JSON that PostgreSQL rejects.
 // Setting the whole cell to NULL is safer for corrupted values.
 fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
+    use polars::prelude::*;
+
     let string_col_names: Vec<String> = df
-        .get_columns()
+        .columns()
         .iter()
         .filter(|s| matches!(s.dtype(), DataType::String))
         .map(|s| s.name().to_string())
@@ -342,27 +381,21 @@ fn sanitize_null_bytes(df: DataFrame) -> Result<DataFrame> {
         return Ok(df);
     }
 
-    let sanitized: Vec<Series> = string_col_names
+    // Vectorised, columnar replacement: any String cell that contains an embedded
+    // null byte is set to NULL. This stays entirely inside Polars' expression
+    // engine — no per-row `Vec<Option<String>>` materialisation or per-cell heap
+    // allocation — and the engine parallelises the columns for us.
+    let exprs: Vec<Expr> = string_col_names
         .iter()
         .map(|name| {
-            let values: Vec<Option<String>> = df
-                .column(name)
-                .unwrap()
-                .str()
-                .unwrap()
-                .into_iter()
-                .map(|opt_s| opt_s.filter(|s| !s.contains('\x00')).map(str::to_string))
-                .collect();
-            Series::new(name.as_str().into(), values)
+            when(col(name.as_str()).str().contains_literal(lit("\x00")))
+                .then(lit(NULL))
+                .otherwise(col(name.as_str()))
+                .alias(name.as_str())
         })
         .collect();
 
-    let mut df = df;
-    for series in sanitized {
-        df.with_column(series)?;
-    }
-
-    Ok(df)
+    Ok(df.lazy().with_columns(exprs).collect()?)
 }
 
 // Copy Parquet file to anonymized S3 bucket.

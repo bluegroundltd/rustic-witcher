@@ -86,7 +86,7 @@ pub trait Transformator: Send + Sync {
             .unwrap()
             .str()
             .unwrap()
-            .into_iter()
+            .iter()
             .map(|value| {
                 let rng = &mut rng.clone();
                 match value {

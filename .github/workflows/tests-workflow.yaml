@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  RUST_VERSION: 1.95.0
+  RUST_VERSION: 1.96.0
 
 permissions:
   contents: read
