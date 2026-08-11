@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.95.0
+ARG RUST_VERSION=1.97.1
 ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-slim-trixie"
 
 # Build the actual app
