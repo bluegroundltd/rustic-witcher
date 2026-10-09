@@ -15,9 +15,7 @@ mod tests {
             Series::new("a".into(), &[original_phone_number.to_string()]).into(),
         ])
         .unwrap();
-        let transformator = FakePhoneTransformator::builder()
-            .column_name("a".to_string())
-            .build();
+        let transformator = FakePhoneTransformator::new("a");
         let mut rng = StdRng::seed_from_u64(42);
 
         let transformed = transformator.transform(&df, &mut rng);

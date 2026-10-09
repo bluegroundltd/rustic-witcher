@@ -5312,7 +5312,6 @@ version = "0.1.0"
 name = "rustic-faker-transformations"
 version = "0.1.0"
 dependencies = [
- "bon",
  "fake",
  "polars",
  "pretty_assertions",
@@ -5347,7 +5346,6 @@ name = "rustic-result-validator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bon",
  "colored",
  "deadpool-postgres",
  "serde",
@@ -5376,7 +5374,6 @@ name = "rustic-target-db"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bon",
  "colored",
  "deadpool-postgres",
  "dms-cdc-operator",
@@ -5389,7 +5386,6 @@ dependencies = [
 name = "rustic-transformator"
 version = "0.1.0"
 dependencies = [
- "bon",
  "fake",
  "polars",
  "rand 0.9.4",
@@ -5416,7 +5412,6 @@ dependencies = [
  "auto-allocator",
  "aws-config",
  "aws-sdk-s3",
- "bon",
  "clap",
  "colored",
  "deadpool-postgres",

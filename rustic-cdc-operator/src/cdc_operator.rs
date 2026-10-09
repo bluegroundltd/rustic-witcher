@@ -376,9 +376,9 @@ impl CDCOperator {
         application_users: Vec<String>,
         app_owner: &str,
     ) {
-        let target_db_finalizer = TargetDBFinalizer::builder()
-            .target_db_pool(target_pool)
-            .build();
+        let target_db_finalizer = TargetDBFinalizer {
+            target_db_pool: target_pool,
+        };
 
         // Update sequence values
         target_db_finalizer

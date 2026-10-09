@@ -70,11 +70,7 @@ impl AnonymizationConfigTable {
         retain_if_empty: bool,
     ) -> Box<dyn Transformator> {
         match operation_type_raw {
-            "fake_phone_transformation" => Box::new(
-                FakePhoneTransformator::builder()
-                    .column_name(column_name.to_string())
-                    .build(),
-            ),
+            "fake_phone_transformation" => Box::new(FakePhoneTransformator::new(column_name)),
             "fake_firstname_transformation" => Box::new(FakeFirstnameTransformator::new(
                 column_name,
                 retain_if_empty,
@@ -88,11 +84,9 @@ impl AnonymizationConfigTable {
             "fake_email_transformation" => {
                 Box::new(FakeEmailTransformator::new(column_name, retain_if_empty))
             }
-            "fake_multi_email_transformation" => Box::new(
-                FakeMultiEmailTransformator::builder()
-                    .column_name(column_name.to_string())
-                    .build(),
-            ),
+            "fake_multi_email_transformation" => {
+                Box::new(FakeMultiEmailTransformator::new(column_name))
+            }
             "fake_companyname_transformation" => Box::new(FakeCompanyNameTransformator::new(
                 column_name,
                 retain_if_empty,
@@ -103,11 +97,9 @@ impl AnonymizationConfigTable {
             "fake_md5_transformation" => {
                 Box::new(FakeMd5Transformator::new(column_name, retain_if_empty))
             }
-            "fake_email_with_id_prefix_transformation" => Box::new(
-                FakeEmailWithIdPrefixTransformator::builder()
-                    .column_name(column_name.to_string())
-                    .build(),
-            ),
+            "fake_email_with_id_prefix_transformation" => {
+                Box::new(FakeEmailWithIdPrefixTransformator::new(column_name))
+            }
             _ => panic!("Unknown operation type: {operation_type_raw}"),
         }
     }

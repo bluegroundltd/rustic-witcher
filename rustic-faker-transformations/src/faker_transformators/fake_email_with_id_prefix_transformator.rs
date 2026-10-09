@@ -1,4 +1,3 @@
-use bon::Builder;
 use fake::Fake;
 use fake::faker::internet::raw::SafeEmail;
 use fake::locales::EN;
@@ -11,9 +10,16 @@ use rustic_transformator::transformator::{
 use rustic_transformator::transformator_output::TransformatorOutput;
 use rustic_transformator::transformator_type::TransformatorType;
 
-#[derive(Builder)]
 pub struct FakeEmailWithIdPrefixTransformator {
     column_name: String,
+}
+
+impl FakeEmailWithIdPrefixTransformator {
+    pub fn new(column_name: impl Into<String>) -> Self {
+        Self {
+            column_name: column_name.into(),
+        }
+    }
 }
 
 impl Transformator for FakeEmailWithIdPrefixTransformator {
