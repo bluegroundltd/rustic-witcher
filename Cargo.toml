@@ -58,6 +58,7 @@ fake = { version = "4.0.0", features = ["derive", "uuid"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 rand_seeder = "0.4.0"
+rayon = "1"
 futures = "0.3.31"
 dms-cdc-operator = "0.1.26"
 deadpool-postgres = "0.14.1"

@@ -20,12 +20,9 @@ impl ReplaceTransformator {
 
 impl Transformator for ReplaceTransformator {
     fn transform(&self, input: &DataFrame, _: &mut StdRng) -> Vec<TransformatorOutput> {
-        let fake_values = input.column(&self.column_name).unwrap().len();
-        let fake_values = (0..fake_values)
-            .map(|_| self.replacement_value.clone())
-            .collect::<Vec<String>>();
-
-        let series = Series::new((&self.column_name).into(), fake_values);
+        let len = input.column(&self.column_name).unwrap().len();
+        let series = StringChunked::full((&self.column_name).into(), &self.replacement_value, len)
+            .into_series();
 
         vec![TransformatorOutput {
             column_name: self.column_name.clone(),

@@ -1,21 +1,13 @@
 //! End-to-end test of the operator's S3 `scan_parquet` path against a local
 //! Floci S3 endpoint. Verifies that predicate + slice pushdown read back the
 //! correct rows, and that polars authenticates to a custom endpoint using the
-//! aws-sdk credential chain — the same wiring `build_cloud_options` uses.
+//! aws-sdk credential chain — through the operator's real
+//! `rustic_s3_config::polars_cloud_options()`.
 //!
 //! Run with Floci up (`docker compose up -d`):
 //!   AWS_ENDPOINT_URL=http://localhost:4566 cargo test -- --nocapture
 
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-
-use aws_sdk_s3::config::ProvideCredentials;
 use aws_sdk_s3::primitives::ByteStream;
-use polars::io::cloud::credential_provider::{
-    AwsCredential, ObjectStoreCredential, PlCredentialProvider,
-};
-use polars::io::cloud::{AmazonS3ConfigKey, CloudOptions};
 use polars::polars_utils::pl_path::PlRefPath;
 use polars::prelude::*;
 
@@ -30,7 +22,8 @@ fn set_env() {
         std::env::set_var("AWS_ACCESS_KEY_ID", "test");
         std::env::set_var("AWS_SECRET_ACCESS_KEY", "test");
         std::env::set_var("AWS_REGION", "us-east-1");
-        std::env::set_var("AWS_ENDPOINT_URL", ENDPOINT);
+        std::env::set_var("S3_BUCKET_REGION", "us-east-1"); // rustic_s3_config: defaults to eu-west-1
+        std::env::set_var("AWS_ENDPOINT_URL", ENDPOINT); // picked up by rustic_s3_config::sdk_config()
         std::env::set_var("AWS_ALLOW_HTTP", "true"); // object_store: permit plain-http endpoint
     }
 }
@@ -58,45 +51,6 @@ async fn s3_client() -> aws_sdk_s3::Client {
     aws_sdk_s3::Client::from_conf(s3_cfg)
 }
 
-/// Mirror of the operator's `build_cloud_options`, plus the endpoint so the scan
-/// targets Floci instead of real AWS.
-async fn build_cloud_options() -> CloudOptions {
-    let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let creds = sdk_config
-        .credentials_provider()
-        .unwrap()
-        .provide_credentials()
-        .await
-        .unwrap();
-
-    let aws_credential = Arc::new(AwsCredential {
-        key_id: creds.access_key_id().to_string(),
-        secret_key: creds.secret_access_key().to_string(),
-        token: creds.session_token().map(str::to_string),
-    });
-
-    let credential_provider = PlCredentialProvider::from_func(move || {
-        let aws_credential = aws_credential.clone();
-        let fut: Pin<
-            Box<dyn Future<Output = PolarsResult<(ObjectStoreCredential, u64)>> + Send + Sync>,
-        > = Box::pin(std::future::ready(Ok((
-            ObjectStoreCredential::Aws(aws_credential),
-            u64::MAX,
-        ))));
-        fut
-    });
-
-    CloudOptions::default()
-        .with_credential_provider(Some(credential_provider))
-        // Plain-http to a custom endpoint is enabled via the AWS_ALLOW_HTTP env var
-        // (object_store ClientOption, not an AmazonS3ConfigKey).
-        .with_aws([
-            (AmazonS3ConfigKey::Region, "us-east-1".to_string()),
-            (AmazonS3ConfigKey::Endpoint, ENDPOINT.to_string()),
-            (AmazonS3ConfigKey::VirtualHostedStyleRequest, "false".to_string()),
-        ])
-}
-
 // Multi-threaded runtime mirrors the app's `#[tokio::main]`. polars cloud
 // `collect()` calls `block_in_place`, which panics on a current-thread runtime
 // ("can call blocking only when running on the multi-threaded runtime").
@@ -119,7 +73,9 @@ async fn scan_parquet_from_floci_s3_with_pushdown() {
     let path = format!("s3://{BUCKET}/{KEY}");
 
     // --- act 1: predicate pushdown (selective filter over the network) ---
-    let opts = build_cloud_options().await;
+    // Region + endpoint come from the env set above; plain-http to the custom
+    // endpoint is enabled via AWS_ALLOW_HTTP (object_store ClientOption).
+    let opts = rustic_s3_config::polars_cloud_options().await;
     let args = ScanArgsParquet {
         cloud_options: Some(opts),
         glob: false,
@@ -135,11 +91,15 @@ async fn scan_parquet_from_floci_s3_with_pushdown() {
         .expect("collect failed");
 
     // name_{i%5000} == name_42 → every 5000th row → ROWS/5000 matches.
-    assert_eq!(filtered.height(), ROWS / 5000, "predicate pushdown row count");
+    assert_eq!(
+        filtered.height(),
+        ROWS / 5000,
+        "predicate pushdown row count"
+    );
     assert_eq!(filtered.width(), 3, "all columns present");
 
     // --- act 2: slice (n_rows) pushdown — record reduction ---
-    let opts = build_cloud_options().await;
+    let opts = rustic_s3_config::polars_cloud_options().await;
     let args = ScanArgsParquet {
         n_rows: Some(1000),
         cloud_options: Some(opts),

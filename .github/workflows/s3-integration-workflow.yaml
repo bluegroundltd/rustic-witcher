@@ -15,6 +15,7 @@ on:
       - main
     paths:
       - "benchmarks/s3-integration/**"
+      - "rustic-s3-config/**"
       - "rustic-anonymization-operator/src/anonymization_dataframe_operator.rs"
       - ".github/workflows/s3-integration-workflow.yaml"
   pull_request:
@@ -22,6 +23,7 @@ on:
       - main
     paths:
       - "benchmarks/s3-integration/**"
+      - "rustic-s3-config/**"
       - "rustic-anonymization-operator/src/anonymization_dataframe_operator.rs"
       - ".github/workflows/s3-integration-workflow.yaml"
   workflow_dispatch:

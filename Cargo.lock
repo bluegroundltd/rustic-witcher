@@ -5238,6 +5238,7 @@ version = "0.1.0"
 dependencies = [
  "pretty_assertions",
  "rustic-base-transformations",
+ "rustic-bg-whole-table-transformator",
  "rustic-faker-transformations",
  "rustic-transformator",
  "rustic-whole-table-transformator",
@@ -5252,13 +5253,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "aws-config",
  "aws-sdk-s3",
  "dms-cdc-operator",
  "polars",
  "rand 0.9.4",
  "rustic-anonymization-config",
+ "rustic-bg-whole-table-transformator",
  "rustic-duration",
+ "rustic-s3-config",
  "rustic-transformator",
  "rustic-whole-table-transformator",
  "tokio",
@@ -5272,6 +5274,23 @@ dependencies = [
  "polars",
  "rand 0.9.4",
  "rustic-transformator",
+]
+
+[[package]]
+name = "rustic-bg-whole-table-transformator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "fake",
+ "polars",
+ "pretty_assertions",
+ "rand 0.9.4",
+ "rand_seeder",
+ "rustic-base-transformations",
+ "rustic-transformator",
+ "rustic-whole-table-transformator",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5329,6 +5348,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustic-local-data-importer-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aws-sdk-s3",
+ "cliclack",
+ "colored",
+ "console 0.16.3",
+ "ctrlc",
+ "deadpool-postgres",
+ "dms-cdc-operator",
+ "futures",
+ "indexmap",
+ "rustic-duration",
+ "rustic-s3-config",
+ "rustic-target-db",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rustic-mongo-buddy"
 version = "0.1.0"
 dependencies = [
@@ -5359,6 +5400,8 @@ version = "0.1.0"
 dependencies = [
  "aws-config",
  "aws-sdk-s3",
+ "polars",
+ "tokio",
 ]
 
 [[package]]
@@ -5390,6 +5433,7 @@ dependencies = [
  "polars",
  "rand 0.9.4",
  "rand_seeder",
+ "rayon",
  "rustic-duration",
  "rustic-faker-types",
  "tracing",
