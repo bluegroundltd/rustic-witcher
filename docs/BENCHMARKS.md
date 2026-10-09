@@ -15,7 +15,7 @@ changed, so the speedup reflects work removed — not work skipped. Equivalence 
 
 | Hot path | OLD (median) | NEW (median) | Speedup | What changed |
 |---|---|---|---|---|
-| `sanitize_null_bytes` | 194 ms | 18.8 ms | **~10.3×** | row-by-row `Vec<Option<String>>` → vectorised `when/then/otherwise` |
+| `sanitize_null_bytes` | 194 ms | 18.8 ms | **~10.3×** | row-by-row `Vec<Option<String>>` → vectorised `when/then/otherwise` (now fused into the lazy scan plan, before the filter) |
 | Parquet read + selective filter | 16.6 ms | 11.0 ms | **~1.5×** | eager full read + post-filter → lazy `scan_parquet` + predicate pushdown |
 | Parquet read + `keep_num_of_records` | 15.7 ms | 3.93 ms | **~4.0×** | full read + `head(n)` → `scan_parquet` + slice/`n_rows` pushdown |
 | Config load (per 64 Parquet files) | 7.42 ms | 1.55 µs | **~4,800×** | disk read + TOML parse per file → process-wide memoized `Arc` |
@@ -23,7 +23,7 @@ changed, so the speedup reflects work removed — not work skipped. Equivalence 
 Notes:
 - The read+filter speedup is conservative on local disk; against S3 the predicate also avoids
   transferring non-matching row groups over the network, so the real win is larger.
-- These results hold on **both polars 0.48.1 and 0.54.4** (microbench currently pins 0.54.4).
+- Timings were measured on **polars 0.48.1 and 0.54.4**. The microbench now pins 0.55.2; its equivalence tests pass there, but the timings were not re-measured.
 
 ## S3 scan path — integration test
 
