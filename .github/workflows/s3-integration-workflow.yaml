@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 env:
-  RUST_VERSION: 1.96.0
+  RUST_VERSION: 1.99.0
   COMPOSE_DIR: benchmarks/s3-integration
   # Bypass any runner-side HTTP(S) proxy for the local Floci endpoint so the
   # aws-sdk / object_store requests reach localhost directly.
