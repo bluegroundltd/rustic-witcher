@@ -13,6 +13,8 @@ pub struct MongoDataExporter {
     pub s3_path: String,
     pub database_name: String,
     pub exclude_collections: Vec<String>,
+    /// When `None`, mongodump's own default (4) applies.
+    pub num_parallel_collections: Option<u32>,
 }
 
 impl MongoDataExporter {
@@ -28,12 +30,14 @@ impl MongoDataExporter {
         s3_path: String,
         database_name: String,
         exclude_collections: Vec<String>,
+        num_parallel_collections: Option<u32>,
     ) -> Self {
         Self {
             mongo_uri,
             s3_path,
             database_name,
             exclude_collections,
+            num_parallel_collections,
         }
     }
 
@@ -273,6 +277,12 @@ impl MongoDataExporter {
                 .iter()
                 .map(|collection| format!("--excludeCollection={collection}")),
         );
+
+        if let Some(num_parallel_collections) = self.num_parallel_collections {
+            command_parts.push(format!(
+                "--numParallelCollections={num_parallel_collections}"
+            ));
+        }
 
         let mongo_dump_command = command_parts.join(" ");
         ShellCommandExecutor::execute_cmd(&mongo_dump_command, None)
