@@ -41,6 +41,9 @@ enum Commands {
         database_name: String,
         #[arg(long, value_delimiter = ',', num_args = 0.., required = false)]
         exclude_collections: Vec<String>,
+        /// Number of collections to dump in parallel (default: mongodump's own default of 4)
+        #[arg(long, required = false, value_parser = clap::value_parser!(u32).range(1..))]
+        num_parallel_collections: Option<u32>,
     },
 }
 
@@ -79,15 +82,21 @@ async fn main() {
             s3_path,
             database_name,
             exclude_collections,
+            num_parallel_collections,
         } => {
             let mongo_host = mongo_uri.split('@').collect::<Vec<_>>()[1];
 
             info!(
-                "Exporting data from {} to {} in {} excluding {:?}",
-                mongo_host, s3_path, database_name, exclude_collections
+                "Exporting data from {} to {} in {} excluding {:?} (num_parallel_collections: {:?})",
+                mongo_host, s3_path, database_name, exclude_collections, num_parallel_collections
             );
-            let mongo_data_exporter =
-                MongoDataExporter::new(mongo_uri, s3_path, database_name, exclude_collections);
+            let mongo_data_exporter = MongoDataExporter::new(
+                mongo_uri,
+                s3_path,
+                database_name,
+                exclude_collections,
+                num_parallel_collections,
+            );
             mongo_data_exporter.export_data().await;
         }
     }
