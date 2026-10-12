@@ -1,17 +1,22 @@
-use bon::Builder;
 use tracing::info;
 
 use crate::config_structs::root_struct::Validations;
 use std::{env, fs, path::PathBuf};
 
 /// A struct for loading validation configurations.
-#[derive(Builder)]
 pub struct ValidationConfigLoader {
     database_name: String,
     schema_name: String,
 }
 
 impl ValidationConfigLoader {
+    pub fn new(database_name: impl Into<String>, schema_name: impl Into<String>) -> Self {
+        Self {
+            database_name: database_name.into(),
+            schema_name: schema_name.into(),
+        }
+    }
+
     /// Loads the validations configuration.
     ///
     /// # Returns

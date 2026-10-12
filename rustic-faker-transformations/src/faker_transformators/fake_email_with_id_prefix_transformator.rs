@@ -1,4 +1,3 @@
-use bon::Builder;
 use fake::Fake;
 use fake::faker::internet::raw::SafeEmail;
 use fake::locales::EN;
@@ -11,9 +10,16 @@ use rustic_transformator::transformator::{
 use rustic_transformator::transformator_output::TransformatorOutput;
 use rustic_transformator::transformator_type::TransformatorType;
 
-#[derive(Builder)]
 pub struct FakeEmailWithIdPrefixTransformator {
     column_name: String,
+}
+
+impl FakeEmailWithIdPrefixTransformator {
+    pub fn new(column_name: impl Into<String>) -> Self {
+        Self {
+            column_name: column_name.into(),
+        }
+    }
 }
 
 impl Transformator for FakeEmailWithIdPrefixTransformator {
@@ -29,12 +35,12 @@ impl Transformator for FakeEmailWithIdPrefixTransformator {
             .unwrap()
             .str()
             .unwrap()
-            .into_iter();
+            .iter();
 
         let user_id = user_id_series.i32().unwrap();
 
         let transformed_values: Vec<Option<String>> = user_email_iter
-            .zip(user_id)
+            .zip(user_id.iter())
             .map(|(email, user_id)| {
                 let email = email.unwrap_or("");
                 let email_seed = &mut SipHasher::from(email).into_rng();

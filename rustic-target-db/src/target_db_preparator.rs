@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bon::Builder;
 use colored::Colorize;
 use deadpool_postgres::{GenericClient, Object, Pool};
 use dms_cdc_operator::{
@@ -14,7 +13,6 @@ use tracing::{debug, error, info};
 const RUSTIC_WITCHER_APP_NAME_PREFIX: &str = "rustic_witcher";
 const PG_DUMP_FILE_NAME: &str = "pg_dump.sql";
 
-#[derive(Builder)]
 pub struct TargetDbPreparator {
     pub source_db_pool: Pool,
     pub target_db_pool: Pool,
