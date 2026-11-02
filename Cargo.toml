@@ -32,7 +32,7 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 colored = "3.0.0"
-polars = { version = "0.48.1", features = [
+polars = { version = "0.55.0", features = [
     "aws",
     "dtype-decimal",
     "json",
@@ -56,13 +56,13 @@ toml = "0.9"
 fake = { version = "4.0.0", features = ["derive", "uuid"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
-rand_seeder = "0.4.0"
+rand_seeder = "0.5.0"
 futures = "0.3.31"
 dms-cdc-operator = "0.1.26"
 deadpool-postgres = "0.14.1"
 pretty_assertions = "1.4.1"
-strum = { version = "0.27", features = ["derive"] }
-cliclack = "0.3.5"
+strum = { version = "0.28", features = ["derive"] }
+cliclack = "0.5.0"
 ctrlc = "3.4"
 console = "0.16.2"
 bon = "3.3"
