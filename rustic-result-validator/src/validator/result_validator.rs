@@ -1,4 +1,3 @@
-use bon::Builder;
 use colored::Colorize;
 use deadpool_postgres::{GenericClient, Pool};
 use tracing::info;
@@ -31,7 +30,6 @@ use crate::config_structs::{root_struct::Validations, value_check_type_struct::V
 ///
 /// result_validator.validate().await;
 /// ```
-#[derive(Builder)]
 pub struct ResultValidator {
     database_name: String,
     schema_name: String,
@@ -40,6 +38,20 @@ pub struct ResultValidator {
 }
 
 impl ResultValidator {
+    pub fn new(
+        database_name: impl Into<String>,
+        schema_name: impl Into<String>,
+        target_db_pool: Pool,
+        validations: Validations,
+    ) -> Self {
+        Self {
+            database_name: database_name.into(),
+            schema_name: schema_name.into(),
+            target_db_pool,
+            validations,
+        }
+    }
+
     /// Validates the results from the database.
     ///
     /// This method performs the specified validations on the target database.

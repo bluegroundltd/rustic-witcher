@@ -125,9 +125,7 @@ async fn main() -> Result<()> {
 
             info!("Record reduction is: {record_reduction_enabled}");
 
-            let execution_payload = ExecutionPayload::builder()
-                .target_application_users(target_application_users)
-                .build();
+            let execution_payload = ExecutionPayload::new(target_application_users);
 
             // Build SOURCE_POSTGRES_URL
             let source_postgres_url = format!(
@@ -254,19 +252,19 @@ async fn main() -> Result<()> {
     .await;
 
     // Read the validations configs
-    let validation_config_loader = ValidationConfigLoader::builder()
-        .database_name(cdc_operator_payload.database_name())
-        .schema_name(cdc_operator_payload.schema_name().to_string())
-        .build();
+    let validation_config_loader = ValidationConfigLoader::new(
+        cdc_operator_payload.database_name(),
+        cdc_operator_payload.schema_name(),
+    );
     let validation_configs = validation_config_loader.load_validations_config();
 
     // Execute the validations
-    let result_validator = ResultValidator::builder()
-        .database_name(cdc_operator_payload.database_name())
-        .schema_name(cdc_operator_payload.schema_name().to_string())
-        .target_db_pool(target_pool)
-        .validations(validation_configs)
-        .build();
+    let result_validator = ResultValidator::new(
+        cdc_operator_payload.database_name(),
+        cdc_operator_payload.schema_name(),
+        target_pool,
+        validation_configs,
+    );
     _ = result_validator.validate().await;
 
     // Close the connection pool

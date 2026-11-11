@@ -20,12 +20,9 @@ impl ReplaceTransformator {
 
 impl Transformator for ReplaceTransformator {
     fn transform(&self, input: &DataFrame, _: &mut StdRng) -> Vec<TransformatorOutput> {
-        let fake_values = input.column(&self.column_name).unwrap().len();
-        let fake_values = (0..fake_values)
-            .map(|_| self.replacement_value.clone())
-            .collect::<Vec<String>>();
-
-        let series = Series::new((&self.column_name).into(), fake_values);
+        let len = input.column(&self.column_name).unwrap().len();
+        let series = StringChunked::full((&self.column_name).into(), &self.replacement_value, len)
+            .into_series();
 
         vec![TransformatorOutput {
             column_name: self.column_name.clone(),
@@ -49,7 +46,7 @@ mod tests {
 
     #[test]
     fn test_replace_transformator() {
-        let df = DataFrame::new(vec![Series::new("a".into(), &[1, 2, 3, 4, 5]).into()]).unwrap();
+        let df = DataFrame::new(5, vec![Series::new("a".into(), &[1, 2, 3, 4, 5]).into()]).unwrap();
         let transformator = ReplaceTransformator::new("a".to_string(), "test".to_string());
         let mut rng = StdRng::seed_from_u64(42);
 
@@ -63,7 +60,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_some() && x.unwrap() == "test")
         );
     }

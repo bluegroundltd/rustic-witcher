@@ -1,10 +1,8 @@
-use bon::Builder;
 use colored::Colorize;
 use deadpool_postgres::Pool;
 use std::env;
 use tracing::info;
 
-#[derive(Builder)]
 pub struct TargetDBFinalizer {
     pub target_db_pool: Pool,
 }

@@ -1,4 +1,3 @@
-use bon::Builder;
 use polars::prelude::*;
 use rand::Rng;
 use rand::rngs::StdRng;
@@ -6,9 +5,16 @@ use rustic_transformator::transformator::Transformator;
 use rustic_transformator::transformator_output::TransformatorOutput;
 use rustic_transformator::transformator_type::TransformatorType;
 
-#[derive(Builder)]
 pub struct FakePhoneTransformator {
     column_name: String,
+}
+
+impl FakePhoneTransformator {
+    pub fn new(column_name: impl Into<String>) -> Self {
+        Self {
+            column_name: column_name.into(),
+        }
+    }
 }
 
 impl Transformator for FakePhoneTransformator {

@@ -9,7 +9,7 @@ mod tests {
 
     #[test]
     fn test_fake_name_transformator() {
-        let df = DataFrame::new(vec![Series::new("a".into(), &["foo-bar"]).into()]).unwrap();
+        let df = DataFrame::new(1, vec![Series::new("a".into(), &["foo-bar"]).into()]).unwrap();
         let transformator = FakeNameTransformator::new("a".to_string(), false);
         let mut rng = StdRng::seed_from_u64(42);
 
@@ -23,7 +23,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_some() && x.unwrap() != "foo-bar"),
             true
         );

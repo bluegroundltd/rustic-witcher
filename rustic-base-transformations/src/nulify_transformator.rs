@@ -18,17 +18,8 @@ impl NullifyTransformator {
 
 impl Transformator for NullifyTransformator {
     fn transform(&self, input: &DataFrame, _: &mut StdRng) -> Vec<TransformatorOutput> {
-        let column_name = self.column_name.clone();
-        let col = input.column(&column_name).unwrap();
-        let len = col.len();
-        let dtype = col.dtype();
-
-        let series = match dtype {
-            DataType::String => Series::new(column_name.into(), vec![None::<String>; len]),
-            DataType::Int32 => Series::new(column_name.into(), vec![None::<i32>; len]),
-            DataType::Float64 => Series::new(column_name.into(), vec![None::<f64>; len]),
-            _ => panic!("Unsupported data type: {dtype:?}"),
-        };
+        let col = input.column(&self.column_name).unwrap();
+        let series = Series::full_null((&self.column_name).into(), col.len(), col.dtype());
 
         vec![TransformatorOutput {
             column_name: self.column_name.clone(),
@@ -52,9 +43,10 @@ mod tests {
 
     #[test]
     fn test_replace_transformator() {
-        let df = DataFrame::new(vec![
-            Series::new("a".into(), &["1", "2", "3", "4", "5"]).into(),
-        ])
+        let df = DataFrame::new(
+            5,
+            vec![Series::new("a".into(), &["1", "2", "3", "4", "5"]).into()],
+        )
         .unwrap();
         let transformator = NullifyTransformator::new("a".to_string());
         let mut rng = StdRng::seed_from_u64(42);
@@ -69,7 +61,7 @@ mod tests {
                 .series
                 .str()
                 .unwrap()
-                .into_iter()
+                .iter()
                 .all(|x| x.is_none())
         );
     }

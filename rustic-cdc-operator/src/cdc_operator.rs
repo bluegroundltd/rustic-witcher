@@ -222,26 +222,41 @@ impl CDCOperator {
                     // that will be inserted in the target database, after getting
                     // anonymized.
                     info!("{}", "Reading Parquet files from S3".bold().green());
-                    for file in &parquet_files.unwrap() {
-                        let create_dataframe_payload = CreateDataframePayload {
-                            bucket_name: payload.bucket_name().clone(),
-                            key: file.file_name.to_string(),
-                            database_name: payload.database_name().clone(),
-                            schema_name: payload.schema_name().clone(),
-                            table_name: table.clone(),
-                        };
+                    let payload = &payload;
+                    let dataframe_operator = &dataframe_operator;
 
-                        let create_df_start = Instant::now();
-                        let current_df = dataframe_operator
-                            .create_dataframe_from_parquet_file(&create_dataframe_payload)
-                            .await
-                            .map_err(|e| {
-                                panic!("Error reading Parquet file: {:?}", e);
-                            })
-                            .unwrap();
-                        let create_df_duration = beautify_duration(create_df_start.elapsed());
-                        info!("Creating DF for table {table} took: {create_df_duration}");
+                    // `buffered(2)`: file N+1 is scanned while file N is inserted. The
+                    // overlap relies on `create_dataframe_from_parquet_file` reaching its
+                    // scan `spawn_blocking` on the first poll, so the scan runs on its
+                    // own thread between our polls.
+                    // ponytail: up to 2 DataFrames per table resident.
+                    let mut dataframes = stream::iter(parquet_files.unwrap())
+                        .map(|file| async move {
+                            let create_dataframe_payload = CreateDataframePayload {
+                                bucket_name: payload.bucket_name().clone(),
+                                key: file.file_name.to_string(),
+                                database_name: payload.database_name().clone(),
+                                schema_name: payload.schema_name().clone(),
+                                table_name: table.clone(),
+                            };
 
+                            let create_df_start = Instant::now();
+                            let current_df = dataframe_operator
+                                .create_dataframe_from_parquet_file(&create_dataframe_payload)
+                                .await
+                                .map_err(|e| {
+                                    panic!("Error reading Parquet file: {:?}", e);
+                                })
+                                .unwrap();
+                            let create_df_duration =
+                                beautify_duration(create_df_start.elapsed());
+                            info!("Creating DF for table {table} took: {create_df_duration}");
+
+                            (file, current_df)
+                        })
+                        .buffered(2);
+
+                    while let Some((file, current_df)) = dataframes.next().await {
                         let current_df = if let Some(current_df) = current_df {
                             current_df
                         } else {
@@ -254,7 +269,7 @@ impl CDCOperator {
                             info!("Processing LOAD file: {:?}", file);
                             // Check if the schema of the table is the same as the schema of the Parquet file
                             // in case of altered column names or dropped columns
-                            let df_column_fields = current_df.get_columns();
+                            let df_column_fields = current_df.columns();
 
                             let has_schema_diff = df_column_fields
                                 .iter()
@@ -330,9 +345,6 @@ impl CDCOperator {
                         drop(current_df);
                     }
 
-                    drop(s3_operator);
-                    drop(dataframe_operator);
-
                     let elapsed = beautify_duration(start.elapsed());
 
                     info!(
@@ -376,9 +388,9 @@ impl CDCOperator {
         application_users: Vec<String>,
         app_owner: &str,
     ) {
-        let target_db_finalizer = TargetDBFinalizer::builder()
-            .target_db_pool(target_pool)
-            .build();
+        let target_db_finalizer = TargetDBFinalizer {
+            target_db_pool: target_pool,
+        };
 
         // Update sequence values
         target_db_finalizer
