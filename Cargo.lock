@@ -1743,8 +1743,9 @@ dependencies = [
 
 [[package]]
 name = "dms-cdc-operator"
-version = "0.1.26"
-source = "git+https://github.com/panagpapad/rust-dms-cdc-operator?rev=904333e#904333e754cb562ac84c56462e9b9b16d4eeb4a3"
+version = "0.1.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2062e276d519dae3cfc398f1d0a6c1397209af4e2b53c233c713c04163f7d61c"
 dependencies = [
  "anyhow",
  "async-trait",
