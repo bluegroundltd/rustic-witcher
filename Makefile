@@ -31,14 +31,15 @@ build_and_push_docker_image_bg: ensure_buildkit_builder
 	--cache-to type=registry,ref=$(RUSTIC_WITCHER_BUILD_CACHE_REF),mode=max,image-manifest=true,oci-mediatypes=true
 
 RUSTIC_MONGO_BUDDY_DOCKER_IMAGE_TAG?=master
+RUSTIC_MONGO_BUDDY_BUILD_CACHE_REF=$(ECR_REGISTRY)/bluegroundltd/rustic-mongo-buddy:buildcache
 .PHONY: build_and_push_mongo_buddy_bg
-build_and_push_mongo_buddy_bg:
-	docker context use default
-	docker buildx build \
+build_and_push_mongo_buddy_bg: ensure_buildkit_builder
+	docker buildx build --builder rustic-builder \
 	-t $(ECR_REGISTRY)/bluegroundltd/rustic-mongo-buddy:$(RUSTIC_MONGO_BUDDY_DOCKER_IMAGE_TAG) \
 	-f rustic-mongo-buddy/Dockerfile . \
 	--push \
-	--cache-from $(ECR_REGISTRY)/bluegroundltd/rustic-mongo-buddy:master
+	--cache-from type=registry,ref=$(RUSTIC_MONGO_BUDDY_BUILD_CACHE_REF) \
+	--cache-to type=registry,ref=$(RUSTIC_MONGO_BUDDY_BUILD_CACHE_REF),mode=max,image-manifest=true,oci-mediatypes=true
 
 .PHONY: build_rustic_witcher_open_source
 build_rustic_witcher_open_source:
