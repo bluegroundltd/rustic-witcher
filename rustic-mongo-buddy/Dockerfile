@@ -1,19 +1,30 @@
 ARG RUST_VERSION=1.97.1
 ARG IMAGE_NAME="public.ecr.aws/docker/library/rust:${RUST_VERSION}-slim-trixie"
 
-# Build the actual app
-FROM $IMAGE_NAME AS builder
+# Dependency caching with cargo-chef: dependencies are compiled in their own
+# layer that only changes when Cargo.toml/Cargo.lock change, so a source-only
+# change recompiles just the workspace crates. The layers are shared between
+# CI runs through the registry build cache (see Makefile).
+FROM $IMAGE_NAME AS chef
 WORKDIR /app
-
 RUN apt-get update && apt-get install -y gcc libffi-dev libssl-dev pkg-config zstd
+RUN cargo install cargo-chef --locked --version 0.1.78
+
+# Compute the dependency recipe (depends only on manifests and the lockfile)
+FROM chef AS planner
 COPY . .
-RUN --mount=type=bind,source=src,target=src \
-    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
-    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    --mount=type=cache,target=/app/target/release/ \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --locked --release --bin rustic-mongo-buddy && \
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Build the actual app
+FROM chef AS builder
+
+# Compile dependencies only (cached unless the recipe changes). Must use the
+# same profile/bin as the final build or the cache is not reused.
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --locked --release --recipe-path recipe.json --bin rustic-mongo-buddy
+
+COPY . .
+RUN cargo build --locked --release --bin rustic-mongo-buddy && \
     mkdir -p /bin/rustic/ && \
     cp ./target/release/rustic-mongo-buddy /bin/rustic/
 
