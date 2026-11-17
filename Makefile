@@ -11,16 +11,24 @@ update_submodules_remote:
 	git submodule update --init --recursive --remote
 
 RUSTIC_WITCHER_DOCKER_IMAGE_TAG?=master
+RUSTIC_WITCHER_BUILD_CACHE_REF=$(ECR_REGISTRY)/bluegroundltd/rustic-witcher:buildcache
+# Registry cache export needs a docker-container builder (the default docker
+# driver does not support --cache-to). Created once, reused afterwards.
+.PHONY: ensure_buildkit_builder
+ensure_buildkit_builder:
+	docker buildx inspect rustic-builder >/dev/null 2>&1 || \
+	docker buildx create --name rustic-builder --driver docker-container
+
 .PHONY: build_and_push_docker_image_bg
-build_and_push_docker_image_bg:
-	docker context use default
-	docker buildx build \
+build_and_push_docker_image_bg: ensure_buildkit_builder
+	docker buildx build --builder rustic-builder \
 	-t $(ECR_REGISTRY)/bluegroundltd/rustic-witcher:$(RUSTIC_WITCHER_DOCKER_IMAGE_TAG) \
 	-f Dockerfile . \
 	--build-arg ANONYMIZATION_MODE=bg_source \
 	--build-arg POSTGRES_CLIENT_VERSION=postgresql-client-17 \
 	--push \
-	--cache-from $(ECR_REGISTRY)/bluegroundltd/rustic-witcher:master
+	--cache-from type=registry,ref=$(RUSTIC_WITCHER_BUILD_CACHE_REF) \
+	--cache-to type=registry,ref=$(RUSTIC_WITCHER_BUILD_CACHE_REF),mode=max,image-manifest=true,oci-mediatypes=true
 
 RUSTIC_MONGO_BUDDY_DOCKER_IMAGE_TAG?=master
 .PHONY: build_and_push_mongo_buddy_bg
